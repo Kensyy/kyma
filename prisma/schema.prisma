@@ -1,0 +1,327 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id            String    @id
+  name          String
+  email         String
+  emailVerified Boolean   @default(false)
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  role          Role      @default(STAFF)
+  branchId      String?
+  branch        Branch?   @relation(fields: [branchId], references: [id])
+  sessions      Session[]
+  accounts      Account[]
+
+  assignedTickets   Ticket[]           @relation("TicketAssignee")
+  createdTickets    Ticket[]           @relation("TicketCreatedBy")
+  ticketComments    TicketComment[]
+  ownedAssets       Asset[]
+  assetHistory      AssetHistory[]
+  attachments       Attachment[]
+  activityLog       ActivityLog[]
+  dashboardConfig   DashboardConfig?
+
+  @@unique([email])
+  @@map("user")
+}
+
+enum Role {
+  ADMIN
+  STAFF
+  END_USER
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([token])
+  @@index([userId])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  issuer                String?
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+  @@map("account")
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+  @@map("verification")
+}
+
+// ---------------------------------------------------------------------------
+// Domain schema
+// ---------------------------------------------------------------------------
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+// Status and Category are admin-configurable lookup tables shared across
+// entity types (Section 5.2) — Priority stays a fixed enum above since
+// priority levels don't meaningfully vary per org the way statuses do.
+enum EntityType {
+  TICKET
+  ASSET
+}
+
+enum CustomFieldType {
+  TEXT
+  NUMBER
+  SELECT
+  DATE
+  BOOLEAN
+}
+
+model Branch {
+  id       String  @id @default(cuid())
+  name     String
+  location String?
+
+  users   User[]
+  tickets Ticket[]
+  assets  Asset[]
+
+  @@map("branch")
+}
+
+model Status {
+  id         String     @id @default(cuid())
+  entityType EntityType
+  label      String
+  order      Int
+  color      String
+
+  tickets Ticket[]
+  assets  Asset[]
+
+  @@unique([entityType, label])
+  @@map("status")
+}
+
+model Category {
+  id         String     @id @default(cuid())
+  entityType EntityType
+  label      String
+  order      Int
+
+  tickets Ticket[]
+
+  @@unique([entityType, label])
+  @@map("category")
+}
+
+model AssetType {
+  id    String @id @default(cuid())
+  label String @unique
+  order Int
+
+  assets Asset[]
+
+  @@map("asset_type")
+}
+
+// Single-row deployment config — e.g. ticketPrefix renders ticketNumber as
+// "KYM-1042"; configurable per deployment.
+model AppSettings {
+  id           String @id @default(cuid())
+  ticketPrefix String @default("KYM")
+
+  @@map("app_settings")
+}
+
+model Ticket {
+  id           String    @id @default(cuid())
+  ticketNumber Int       @unique @default(autoincrement())
+  title        String
+  description  String
+  priority     Priority  @default(MEDIUM)
+  slaDueAt     DateTime?
+  slaBreached  Boolean   @default(false)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  statusId    String
+  status      Status    @relation(fields: [statusId], references: [id])
+  categoryId  String?
+  category    Category? @relation(fields: [categoryId], references: [id])
+  branchId    String?
+  branch      Branch?   @relation(fields: [branchId], references: [id])
+  assigneeId  String?
+  assignee    User?     @relation("TicketAssignee", fields: [assigneeId], references: [id])
+  createdById String
+  createdBy   User      @relation("TicketCreatedBy", fields: [createdById], references: [id])
+  assetId     String?
+  asset       Asset?    @relation(fields: [assetId], references: [id])
+
+  comments TicketComment[]
+
+  @@index([statusId])
+  @@index([assigneeId])
+  @@map("ticket")
+}
+
+model TicketComment {
+  id         String   @id @default(cuid())
+  ticketId   String
+  ticket     Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  authorId   String
+  author     User     @relation(fields: [authorId], references: [id])
+  body       String
+  isInternal Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  @@index([ticketId])
+  @@map("ticket_comment")
+}
+
+model Asset {
+  id           String    @id @default(cuid())
+  name         String
+  serialNumber String?
+  location     String?
+  purchasedAt  DateTime?
+
+  typeId   String
+  type     AssetType @relation(fields: [typeId], references: [id])
+  statusId String
+  status   Status    @relation(fields: [statusId], references: [id])
+  ownerId  String?
+  owner    User?     @relation(fields: [ownerId], references: [id])
+  branchId String?
+  branch   Branch?   @relation(fields: [branchId], references: [id])
+
+  tickets Ticket[]
+  history AssetHistory[]
+
+  @@index([statusId])
+  @@map("asset")
+}
+
+model AssetHistory {
+  id        String   @id @default(cuid())
+  assetId   String
+  asset     Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  eventType String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  timestamp DateTime @default(now())
+
+  @@index([assetId])
+  @@map("asset_history")
+}
+
+// Skeleton only — storage backend not yet chosen.
+model Attachment {
+  id           String     @id @default(cuid())
+  entityType   EntityType
+  entityId     String
+  filename     String
+  url          String
+  uploadedById String
+  uploadedBy   User       @relation(fields: [uploadedById], references: [id])
+  createdAt    DateTime   @default(now())
+
+  @@index([entityType, entityId])
+  @@map("attachment")
+}
+
+model ActivityLog {
+  id         String     @id @default(cuid())
+  entityType EntityType
+  entityId   String
+  actorId    String
+  actor      User       @relation(fields: [actorId], references: [id])
+  action     String
+  metadata   Json?
+  createdAt  DateTime   @default(now())
+
+  @@index([entityType, entityId])
+  @@map("activity_log")
+}
+
+model CustomFieldDefinition {
+  id         String          @id @default(cuid())
+  entityType EntityType
+  name       String
+  fieldType  CustomFieldType
+  options    Json?
+  required   Boolean         @default(false)
+  order      Int
+
+  values CustomFieldValue[]
+
+  @@map("custom_field_definition")
+}
+
+// entityId is polymorphic (a Ticket.id or Asset.id depending on the
+// definition's entityType) so it's a plain indexed field, not a Prisma
+// relation — resolved in the application layer.
+model CustomFieldValue {
+  id                String                @id @default(cuid())
+  entityId          String
+  fieldDefinitionId String
+  fieldDefinition   CustomFieldDefinition @relation(fields: [fieldDefinitionId], references: [id], onDelete: Cascade)
+  value             String
+
+  @@index([entityId])
+  @@index([fieldDefinitionId])
+  @@map("custom_field_value")
+}
+
+model DashboardConfig {
+  id         String @id @default(cuid())
+  userId     String @unique
+  user       User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  layoutJson Json
+
+  @@map("dashboard_config")
+}
