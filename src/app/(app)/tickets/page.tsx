@@ -34,10 +34,14 @@ export default function TicketsPage() {
   const tickets = data?.tickets ?? [];
   const prefix = data?.ticketPrefix ?? "KYM";
 
-  const mineCount = tickets.filter(
+  // Fetched unfiltered (not `tickets` above) so tab counts stay accurate
+  // regardless of which tab is currently active.
+  const { data: allData } = useTickets({});
+  const allTickets = allData?.tickets ?? [];
+  const mineCount = allTickets.filter(
     (t) => t.assignee?.id === session?.user.id,
   ).length;
-  const unassignedCount = tickets.filter((t) => !t.assignee).length;
+  const unassignedCount = allTickets.filter((t) => !t.assignee).length;
 
   return (
     <div className="flex flex-1 flex-col">
@@ -59,7 +63,7 @@ export default function TicketsPage() {
       <div className="flex items-center gap-5.5 border-b px-7">
         {(
           [
-            ["all", "All tickets", tickets.length],
+            ["all", "All tickets", allTickets.length],
             ["mine", "My tickets", mineCount],
             ["unassigned", "Unassigned", unassignedCount],
           ] as const

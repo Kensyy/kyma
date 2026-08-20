@@ -1,24 +1,5 @@
 import { cn } from "@/lib/utils";
-
-// Maps the free-text `color` an admin picks for a Status row (Section 5.2)
-// to the design system's token pairs. Falls back to muted for anything else.
-const COLOR_CLASSES: Record<string, { dot: string; text: string; bg: string }> =
-  {
-    accent: { dot: "bg-primary", text: "text-primary", bg: "bg-accent" },
-    violet: { dot: "bg-violet", text: "text-violet", bg: "bg-violet/15" },
-    success: { dot: "bg-success", text: "text-success", bg: "bg-success/15" },
-    warning: { dot: "bg-warning", text: "text-warning", bg: "bg-warning/15" },
-    destructive: {
-      dot: "bg-destructive",
-      text: "text-destructive",
-      bg: "bg-destructive/10",
-    },
-    muted: {
-      dot: "bg-muted-foreground",
-      text: "text-muted-foreground",
-      bg: "bg-muted",
-    },
-  };
+import { COLOR_CLASSES } from "@/lib/color-tokens";
 
 export function StatusBadge({
   label,
