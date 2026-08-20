@@ -315,6 +315,7 @@ model CustomFieldValue {
   fieldDefinition   CustomFieldDefinition @relation(fields: [fieldDefinitionId], references: [id], onDelete: Cascade)
   value             String
 
+  @@unique([entityId, fieldDefinitionId])
   @@index([entityId])
   @@index([fieldDefinitionId])
   @@map("custom_field_value")
