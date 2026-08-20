@@ -22,6 +22,21 @@ export const COLOR_CLASSES: Record<
   },
 };
 
+// The CSS custom property backing each color-name token, for contexts (like
+// Recharts fills) that need a real color value rather than a Tailwind class.
+const CSS_VARS: Record<string, string> = {
+  accent: "var(--color-primary)",
+  violet: "var(--color-violet)",
+  success: "var(--color-success)",
+  warning: "var(--color-warning)",
+  destructive: "var(--color-destructive)",
+  muted: "var(--color-muted-foreground)",
+};
+
+export function cssColorForToken(color: string): string {
+  return CSS_VARS[color] ?? CSS_VARS.muted;
+}
+
 const ROTATING_PALETTE = ["accent", "violet", "warning", "success"] as const;
 
 /** Deterministically picks a palette color for something with no stored color (e.g. AssetType). */

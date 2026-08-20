@@ -28,8 +28,8 @@ export default async function DashboardPage() {
           Welcome back, {session?.user.name}
         </h1>
         <p className="text-muted-foreground mt-1 text-sm">
-          Asset CRUD and the real admin dashboard land in the next milestones —
-          head to Tickets to see what&apos;s live.
+          Configurable widget layouts land in a later milestone — for now, head
+          to Tickets or Assets to get to work.
         </p>
       </div>
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
