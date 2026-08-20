@@ -28,8 +28,8 @@ export default async function DashboardPage() {
           Welcome back, {session?.user.name}
         </h1>
         <p className="text-muted-foreground mt-1 text-sm">
-          Ticket and asset CRUD land in the next milestones — this confirms
-          auth, the database, and the theme are wired up end to end.
+          Asset CRUD and the real admin dashboard land in the next milestones —
+          head to Tickets to see what&apos;s live.
         </p>
       </div>
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
