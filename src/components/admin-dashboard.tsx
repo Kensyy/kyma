@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import {
   Bar,
   BarChart,
@@ -16,6 +17,7 @@ import { relativeTime } from "@/lib/relative-time";
 import { cssColorForToken } from "@/lib/color-tokens";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 
 const PRIORITY_LABEL: Record<string, string> = {
   LOW: "Low",
@@ -71,11 +73,19 @@ export function AdminDashboard() {
 
   return (
     <div className="flex flex-col gap-6 p-7">
-      <div>
-        <h1 className="font-heading text-xl font-semibold">Admin dashboard</h1>
-        <p className="text-muted-foreground mt-1 text-sm">
-          Widgets are fixed for now — configurable layout lands in Milestone 8.
-        </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="font-heading text-xl font-semibold">
+            Admin dashboard
+          </h1>
+          <p className="text-muted-foreground mt-1 text-sm">
+            Widgets are fixed for now — configurable layout lands in Milestone
+            8.
+          </p>
+        </div>
+        <Button asChild variant="outline">
+          <Link href="/admin/custom-fields">Ticket custom fields</Link>
+        </Button>
       </div>
 
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
