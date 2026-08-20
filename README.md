@@ -26,6 +26,19 @@ priya@kyma.local / kyma-dev-password   (Staff)
 sam@kyma.local   / kyma-dev-password   (Staff)
 ```
 
+## Deploying
+
+Not automated — needs a few one-time steps in Vercel/Supabase's own dashboards:
+
+1. Create a [Supabase](https://supabase.com) project and copy its Postgres connection string.
+2. Create a [Vercel](https://vercel.com) project from this GitHub repo.
+3. In Vercel's project settings, add environment variables: `DATABASE_URL` (from step 1),
+   `BETTER_AUTH_SECRET` (a fresh random value — don't reuse the local dev one), and
+   `BETTER_AUTH_URL` (the production URL Vercel assigns, e.g. `https://kyma.vercel.app`).
+4. Apply the schema to the Supabase database once, from a machine with `DATABASE_URL` pointed
+   at it: `pnpm exec prisma migrate deploy`.
+5. Deploy. Vercel builds and redeploys automatically on every push to `main`.
+
 ## Scripts
 
 | Command                             | What it does                           |
@@ -42,4 +55,5 @@ sam@kyma.local   / kyma-dev-password   (Staff)
 
 ## Status
 
-Milestone 1 (repo scaffold, schema, auth, CI) — in progress.
+Milestones 1–4 (scaffold, ticket CRUD, asset CRUD, admin dashboard) done. Milestone 5 (deploy)
+is blocked on creating the Vercel/Supabase projects by hand — see Deploying above.
