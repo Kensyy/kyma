@@ -16,32 +16,45 @@ async function main() {
   });
 
   const ticketStatuses = [
-    { label: "Open", order: 1, color: "accent" },
-    { label: "In Progress", order: 2, color: "violet" },
-    { label: "Blocked", order: 3, color: "destructive" },
-    { label: "Resolved", order: 4, color: "success" },
-    { label: "Closed", order: 5, color: "muted" },
+    { label: "Open", order: 1, color: "accent", isTerminal: false },
+    { label: "In Progress", order: 2, color: "violet", isTerminal: false },
+    { label: "Blocked", order: 3, color: "destructive", isTerminal: false },
+    { label: "Resolved", order: 4, color: "success", isTerminal: true },
+    { label: "Closed", order: 5, color: "muted", isTerminal: true },
   ];
   for (const status of ticketStatuses) {
     await prisma.status.upsert({
       where: {
         entityType_label: { entityType: "TICKET", label: status.label },
       },
-      update: { order: status.order, color: status.color },
+      update: {
+        order: status.order,
+        color: status.color,
+        isTerminal: status.isTerminal,
+      },
       create: { entityType: "TICKET", ...status },
     });
   }
 
   const assetStatuses = [
-    { label: "In Use", order: 1, color: "success" },
-    { label: "In Storage", order: 2, color: "muted" },
-    { label: "Under Repair", order: 3, color: "destructive" },
-    { label: "Retired", order: 4, color: "muted" },
+    { label: "In Use", order: 1, color: "success", isTerminal: false },
+    { label: "In Storage", order: 2, color: "muted", isTerminal: false },
+    {
+      label: "Under Repair",
+      order: 3,
+      color: "destructive",
+      isTerminal: false,
+    },
+    { label: "Retired", order: 4, color: "muted", isTerminal: true },
   ];
   for (const status of assetStatuses) {
     await prisma.status.upsert({
       where: { entityType_label: { entityType: "ASSET", label: status.label } },
-      update: { order: status.order, color: status.color },
+      update: {
+        order: status.order,
+        color: status.color,
+        isTerminal: status.isTerminal,
+      },
       create: { entityType: "ASSET", ...status },
     });
   }
@@ -79,33 +92,40 @@ async function main() {
     });
   }
 
-  const adminEmail = "admin@kyma.local";
-  const existingAdmin = await prisma.user.findUnique({
-    where: { email: adminEmail },
-    include: { accounts: true },
-  });
-  // A user with no linked account means a prior signUpEmail failed partway
-  // through (e.g. a schema mismatch) — clean it up and retry rather than
-  // leaving a passwordless account behind.
-  if (existingAdmin && existingAdmin.accounts.length === 0) {
-    await prisma.user.delete({ where: { id: existingAdmin.id } });
-  }
-  if (!existingAdmin || existingAdmin.accounts.length === 0) {
-    await auth.api.signUpEmail({
-      body: {
-        email: adminEmail,
-        password: "kyma-dev-admin",
-        name: "Admin",
-      },
+  async function seedUser(
+    email: string,
+    name: string,
+    role: "ADMIN" | "STAFF",
+  ) {
+    const existing = await prisma.user.findUnique({
+      where: { email },
+      include: { accounts: true },
     });
-    await prisma.user.update({
-      where: { email: adminEmail },
-      data: { role: "ADMIN", branchId: branch.id },
-    });
-    console.log(`Seeded admin user: ${adminEmail} / kyma-dev-admin`);
-  } else {
-    console.log(`Admin user already exists: ${adminEmail}`);
+    // A user with no linked account means a prior signUpEmail failed partway
+    // through (e.g. a schema mismatch) — clean it up and retry rather than
+    // leaving a passwordless account behind.
+    if (existing && existing.accounts.length === 0) {
+      await prisma.user.delete({ where: { id: existing.id } });
+    }
+    if (!existing || existing.accounts.length === 0) {
+      await auth.api.signUpEmail({
+        body: { email, password: "kyma-dev-password", name },
+      });
+      await prisma.user.update({
+        where: { email },
+        data: { role, branchId: branch.id },
+      });
+      console.log(
+        `Seeded ${role.toLowerCase()} user: ${email} / kyma-dev-password`,
+      );
+    } else {
+      console.log(`User already exists: ${email}`);
+    }
   }
+
+  await seedUser("admin@kyma.local", "Admin", "ADMIN");
+  await seedUser("priya@kyma.local", "Priya N.", "STAFF");
+  await seedUser("sam@kyma.local", "Sam O.", "STAFF");
 
   console.log("Seed complete.");
 }

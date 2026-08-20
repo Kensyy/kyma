@@ -139,6 +139,9 @@ model Status {
   label      String
   order      Int
   color      String
+  // Marks a "done" state (Resolved/Closed/Retired, ...) — drives SLA-overdue
+  // and open-count logic without hardcoding label strings admins can rename.
+  isTerminal Boolean    @default(false)
 
   tickets Ticket[]
   assets  Asset[]

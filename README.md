@@ -18,10 +18,12 @@ pnpm db:migrate         # applies the schema and seeds lookup data + an admin us
 pnpm dev
 ```
 
-The seed script creates one admin account for local development:
+The seed script creates three accounts for local development (all share one password):
 
 ```
-admin@kyma.local / kyma-dev-admin
+admin@kyma.local / kyma-dev-password   (Admin)
+priya@kyma.local / kyma-dev-password   (Staff)
+sam@kyma.local   / kyma-dev-password   (Staff)
 ```
 
 ## Scripts
