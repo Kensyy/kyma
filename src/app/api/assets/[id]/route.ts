@@ -3,6 +3,27 @@ import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/api-auth";
 import { updateAssetSchema } from "@/lib/validations/asset";
 import { assetDetailInclude } from "@/lib/types/asset";
+import {
+  persistCustomFieldValues,
+  validateCustomFields,
+} from "@/lib/custom-field-sync";
+
+async function loadCustomFields(assetId: string) {
+  const [definitions, values] = await Promise.all([
+    prisma.customFieldDefinition.findMany({
+      where: { entityType: "ASSET" },
+      orderBy: { order: "asc" },
+    }),
+    prisma.customFieldValue.findMany({ where: { entityId: assetId } }),
+  ]);
+  const valueByDefId = new Map(
+    values.map((v) => [v.fieldDefinitionId, v.value]),
+  );
+  return definitions.map((definition) => ({
+    definition,
+    value: valueByDefId.get(definition.id) ?? null,
+  }));
+}
 
 export async function GET(
   _request: NextRequest,
@@ -21,7 +42,9 @@ export async function GET(
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  return NextResponse.json({ asset });
+  const customFields = await loadCustomFields(id);
+
+  return NextResponse.json({ asset, customFields });
 }
 
 export async function PATCH(
@@ -46,7 +69,7 @@ export async function PATCH(
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  const { typeId, statusId, purchasedAt, ...rest } = parsed.data;
+  const { typeId, statusId, purchasedAt, customFields, ...rest } = parsed.data;
 
   if (typeId) {
     const type = await prisma.assetType.findUnique({ where: { id: typeId } });
@@ -61,6 +84,14 @@ export async function PATCH(
     if (!status || status.entityType !== "ASSET") {
       return NextResponse.json({ error: "Invalid status" }, { status: 400 });
     }
+  }
+
+  const fieldsResult = await validateCustomFields("ASSET", customFields);
+  if (!fieldsResult.ok) {
+    return NextResponse.json(
+      { error: { customFields: fieldsResult.errors } },
+      { status: 400 },
+    );
   }
 
   // Log check-in/check-out and status-change events so the asset's history
@@ -96,6 +127,8 @@ export async function PATCH(
     },
     include: assetDetailInclude,
   });
+
+  await persistCustomFieldValues(id, customFields, fieldsResult.definitions);
 
   return NextResponse.json({ asset });
 }

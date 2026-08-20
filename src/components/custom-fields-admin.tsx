@@ -21,6 +21,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 import {
   Select,
   SelectContent,
@@ -30,6 +31,10 @@ import {
 } from "@/components/ui/select";
 
 const FIELD_TYPES = ["TEXT", "NUMBER", "SELECT", "DATE", "BOOLEAN"] as const;
+const ENTITY_TABS = [
+  { value: "TICKET", label: "Tickets" },
+  { value: "ASSET", label: "Assets" },
+] as const;
 
 function ReorderButtons({
   onMoveUp,
@@ -88,8 +93,13 @@ function ReorderButtons({
   );
 }
 
+// Entity-type toggle lives here (not the page) since it drives which
+// definitions this component queries/mutates — keeping the page a plain
+// server-rendered admin gate, per the pattern the other /admin pages use.
 export function CustomFieldsAdmin() {
-  const { data, isLoading } = useCustomFieldDefinitions("TICKET");
+  const [entityType, setEntityType] =
+    useState<(typeof ENTITY_TABS)[number]["value"]>("TICKET");
+  const { data, isLoading } = useCustomFieldDefinitions(entityType);
   const createDef = useCreateCustomFieldDefinition();
   const deleteDef = useDeleteCustomFieldDefinition();
   const queryClient = useQueryClient();
@@ -107,8 +117,15 @@ export function CustomFieldsAdmin() {
     formState: { errors },
   } = useForm<CreateCustomFieldDefinitionInput>({
     resolver: zodResolver(createCustomFieldDefinitionSchema),
-    defaultValues: { entityType: "TICKET", fieldType: "TEXT", required: false },
+    defaultValues: { entityType, fieldType: "TEXT", required: false },
   });
+
+  function selectEntityType(next: (typeof ENTITY_TABS)[number]["value"]) {
+    setEntityType(next);
+    reset({ entityType: next, fieldType: "TEXT", required: false, name: "" });
+    setFieldType("TEXT");
+    setOptionsText("");
+  }
 
   // `options` isn't its own registered field (the UI keeps it as a plain
   // comma-separated string in `optionsText`), so keep RHF's tracked value in
@@ -134,7 +151,7 @@ export function CustomFieldsAdmin() {
       });
       toast.success("Field added");
       reset({
-        entityType: "TICKET",
+        entityType,
         fieldType: "TEXT",
         required: false,
         name: "",
@@ -176,7 +193,7 @@ export function CustomFieldsAdmin() {
   async function handleDelete(id: string, name: string) {
     if (
       !window.confirm(
-        `Delete the "${name}" field? This removes it from every ticket.`,
+        `Delete the "${name}" field? This removes it from every ${entityType === "TICKET" ? "ticket" : "asset"}.`,
       )
     )
       return;
@@ -188,16 +205,34 @@ export function CustomFieldsAdmin() {
     }
   }
 
+  const entityLabel = entityType === "TICKET" ? "ticket" : "asset";
+
   return (
     <div className="flex flex-col gap-6 p-7">
       <div>
-        <h1 className="font-heading text-xl font-semibold">
-          Ticket custom fields
-        </h1>
+        <h1 className="font-heading text-xl font-semibold">Custom fields</h1>
         <p className="text-muted-foreground mt-1 text-sm">
-          Fields defined here render dynamically on every ticket — no code
-          changes needed.
+          Fields defined here render dynamically on every {entityLabel} — no
+          code changes needed.
         </p>
+      </div>
+
+      <div className="bg-muted flex w-fit gap-1 rounded-lg p-1">
+        {ENTITY_TABS.map((tab) => (
+          <button
+            key={tab.value}
+            type="button"
+            onClick={() => selectEntityType(tab.value)}
+            className={cn(
+              "rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+              entityType === tab.value
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
 
       <Card className="max-w-xl">

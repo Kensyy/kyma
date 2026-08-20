@@ -1,12 +1,7 @@
 import { z } from "zod";
+import { customFieldsShape } from "@/lib/validations/custom-field";
 
 export const priorityEnum = z.enum(["LOW", "MEDIUM", "HIGH", "URGENT"]);
-
-// fieldDefinitionId -> raw string value (Section 5.1 — values are always
-// stored as strings; validated per field type server-side).
-const customFieldsShape = z
-  .record(z.string(), z.string().nullable())
-  .optional();
 
 export const createTicketSchema = z.object({
   title: z.string().trim().min(1, "Title is required.").max(200),

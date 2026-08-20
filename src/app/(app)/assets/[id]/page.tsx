@@ -1,6 +1,6 @@
 "use client";
 
-import { use } from "react";
+import { use, useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { relativeTime } from "@/lib/relative-time";
@@ -8,6 +8,8 @@ import { useAsset, useAssetTypes, useUpdateAsset } from "@/hooks/use-assets";
 import { useAssignableUsers, useStatuses } from "@/hooks/use-tickets";
 import { StatusBadge } from "@/components/status-badge";
 import { AssetTypeBadge } from "@/components/asset-type-badge";
+import { DynamicFieldInput } from "@/components/dynamic-field-input";
+import { useDebouncedCallback } from "@/hooks/use-debounced-callback";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
@@ -36,6 +38,22 @@ export default function AssetDetailPage({
   const { data: userData } = useAssignableUsers();
   const updateAsset = useUpdateAsset(id);
 
+  // Same debounced-draft pattern as the ticket detail page — typing stays
+  // responsive while the save is debounced/in flight.
+  const [customFieldDrafts, setCustomFieldDrafts] = useState<
+    Record<string, string | null>
+  >({});
+  const debouncedCustomFieldUpdate = useDebouncedCallback(
+    (fieldId: string, value: string | null) => {
+      updateAsset
+        .mutateAsync({ customFields: { [fieldId]: value } })
+        .catch(() => {
+          toast.error("Could not update the asset.");
+        });
+    },
+    600,
+  );
+
   if (isLoading || !data) {
     return (
       <div className="flex flex-1 flex-col gap-4 p-7">
@@ -46,7 +64,7 @@ export default function AssetDetailPage({
     );
   }
 
-  const { asset } = data;
+  const { asset, customFields } = data;
 
   async function handleUpdate(
     patch: Parameters<typeof updateAsset.mutateAsync>[0],
@@ -172,6 +190,25 @@ export default function AssetDetailPage({
             </SelectContent>
           </Select>
         </PropertyField>
+
+        {customFields.map((entry) => (
+          <PropertyField
+            key={entry.definition.id}
+            label={entry.definition.name}
+          >
+            <DynamicFieldInput
+              definition={entry.definition}
+              value={customFieldDrafts[entry.definition.id] ?? entry.value}
+              onChange={(value) => {
+                setCustomFieldDrafts((prev) => ({
+                  ...prev,
+                  [entry.definition.id]: value,
+                }));
+                debouncedCustomFieldUpdate(entry.definition.id, value);
+              }}
+            />
+          </PropertyField>
+        ))}
 
         <div className="text-muted-foreground flex flex-col gap-1 border-t pt-3 text-[11.5px]">
           {asset.location && <span>Location: {asset.location}</span>}

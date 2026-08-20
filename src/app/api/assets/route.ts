@@ -4,6 +4,10 @@ import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/api-auth";
 import { createAssetSchema } from "@/lib/validations/asset";
 import { assetListInclude } from "@/lib/types/asset";
+import {
+  persistCustomFieldValues,
+  validateCustomFields,
+} from "@/lib/custom-field-sync";
 
 export async function GET(request: NextRequest) {
   const session = await requireSession();
@@ -50,7 +54,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { typeId, statusId, purchasedAt, ...rest } = parsed.data;
+  const { typeId, statusId, purchasedAt, customFields, ...rest } = parsed.data;
 
   const [type, status] = await Promise.all([
     prisma.assetType.findUnique({ where: { id: typeId } }),
@@ -61,6 +65,16 @@ export async function POST(request: NextRequest) {
   }
   if (!status || status.entityType !== "ASSET") {
     return NextResponse.json({ error: "Invalid status" }, { status: 400 });
+  }
+
+  const fieldsResult = await validateCustomFields("ASSET", customFields, {
+    requireAllRequired: true,
+  });
+  if (!fieldsResult.ok) {
+    return NextResponse.json(
+      { error: { customFields: fieldsResult.errors } },
+      { status: 400 },
+    );
   }
 
   const asset = await prisma.asset.create({
@@ -75,6 +89,12 @@ export async function POST(request: NextRequest) {
     },
     include: assetListInclude,
   });
+
+  await persistCustomFieldValues(
+    asset.id,
+    customFields,
+    fieldsResult.definitions,
+  );
 
   return NextResponse.json({ asset }, { status: 201 });
 }

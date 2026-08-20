@@ -1,6 +1,14 @@
 import { z } from "zod";
 
 export const entityTypeEnum = z.enum(["TICKET", "ASSET"]);
+
+// fieldDefinitionId -> raw string value (Section 5.1 — values are always
+// stored as strings; validated per field type server-side). Shared between
+// the ticket and asset create/update schemas so both entities submit custom
+// fields the same shape.
+export const customFieldsShape = z
+  .record(z.string(), z.string().nullable())
+  .optional();
 export const customFieldTypeEnum = z.enum([
   "TEXT",
   "NUMBER",

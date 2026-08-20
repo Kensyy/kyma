@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { AssetTypeModel } from "@/generated/prisma/models";
 import { apiFetch } from "@/lib/api-client";
 import type { AssetDetail, AssetListItem } from "@/lib/types/asset";
+import type { CustomFieldValueEntry } from "@/hooks/use-tickets";
 import type {
   CreateAssetInput,
   UpdateAssetInput,
@@ -47,7 +48,10 @@ export function useAssets(filters: AssetFilters) {
 export function useAsset(id: string) {
   return useQuery({
     queryKey: ["assets", id],
-    queryFn: () => apiFetch<{ asset: AssetDetail }>(`/api/assets/${id}`),
+    queryFn: () =>
+      apiFetch<{ asset: AssetDetail; customFields: CustomFieldValueEntry[] }>(
+        `/api/assets/${id}`,
+      ),
   });
 }
 

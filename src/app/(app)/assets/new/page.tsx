@@ -1,16 +1,19 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
+import { ApiError } from "@/lib/api-client";
 import {
   createAssetSchema,
   type CreateAssetInput,
 } from "@/lib/validations/asset";
 import { useAssetTypes, useCreateAsset } from "@/hooks/use-assets";
 import { useStatuses } from "@/hooks/use-tickets";
+import { useCustomFieldDefinitions } from "@/hooks/use-custom-fields";
+import { DynamicFieldInput } from "@/components/dynamic-field-input";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,7 +30,15 @@ export default function NewAssetPage() {
   const router = useRouter();
   const { data: typeData } = useAssetTypes();
   const { data: statusData } = useStatuses("ASSET");
+  const { data: customFieldData } = useCustomFieldDefinitions("ASSET");
   const createAsset = useCreateAsset();
+
+  const [customFieldValues, setCustomFieldValues] = useState<
+    Record<string, string | null>
+  >({});
+  const [customFieldErrors, setCustomFieldErrors] = useState<
+    Record<string, string>
+  >({});
 
   const {
     register,
@@ -48,12 +59,28 @@ export default function NewAssetPage() {
   }, [defaultStatus, setValue, getValues]);
 
   async function onSubmit(values: CreateAssetInput) {
+    setCustomFieldErrors({});
     try {
-      const { asset } = await createAsset.mutateAsync(values);
+      const { asset } = await createAsset.mutateAsync({
+        ...values,
+        customFields: customFieldValues,
+      });
       toast.success("Asset created");
       router.push(`/assets/${asset.id}`);
-    } catch {
-      toast.error("Could not create the asset.");
+    } catch (error) {
+      const customFieldErrs =
+        error instanceof ApiError &&
+        error.body &&
+        typeof error.body === "object" &&
+        "customFields" in error.body
+          ? (error.body.customFields as Record<string, string>)
+          : null;
+      if (customFieldErrs) {
+        setCustomFieldErrors(customFieldErrs);
+        toast.error("Check the highlighted fields.");
+      } else {
+        toast.error("Could not create the asset.");
+      }
     }
   }
 
@@ -134,6 +161,36 @@ export default function NewAssetPage() {
                 />
               </div>
             </div>
+
+            {customFieldData && customFieldData.definitions.length > 0 && (
+              <div className="flex flex-col gap-4 border-t pt-4">
+                {customFieldData.definitions.map((def) => (
+                  <div key={def.id} className="flex flex-col gap-2">
+                    <Label>
+                      {def.name}
+                      {def.required && (
+                        <span className="text-destructive"> *</span>
+                      )}
+                    </Label>
+                    <DynamicFieldInput
+                      definition={def}
+                      value={customFieldValues[def.id] ?? null}
+                      onChange={(value) =>
+                        setCustomFieldValues((prev) => ({
+                          ...prev,
+                          [def.id]: value,
+                        }))
+                      }
+                    />
+                    {customFieldErrors[def.id] && (
+                      <p className="text-destructive text-sm">
+                        {customFieldErrors[def.id]}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
 
             <div className="flex justify-end gap-2 pt-2">
               <Button

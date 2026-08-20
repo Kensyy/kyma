@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { customFieldsShape } from "@/lib/validations/custom-field";
 
 // Plain "YYYY-MM-DD" from <input type="date">, not full ISO. An empty
 // string (nothing picked) is treated as "no date" downstream rather than
@@ -15,6 +16,7 @@ export const createAssetSchema = z.object({
   ownerId: z.string().min(1).optional(),
   branchId: z.string().min(1).optional(),
   purchasedAt: dateOnly,
+  customFields: customFieldsShape,
 });
 
 export type CreateAssetInput = z.infer<typeof createAssetSchema>;
@@ -27,6 +29,7 @@ export const updateAssetSchema = z.object({
   location: z.string().trim().max(200).nullable().optional(),
   ownerId: z.string().min(1).nullable().optional(),
   purchasedAt: dateOnly.nullable(),
+  customFields: customFieldsShape,
 });
 
 export type UpdateAssetInput = z.infer<typeof updateAssetSchema>;
