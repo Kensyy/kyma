@@ -79,13 +79,18 @@ export function AdminDashboard() {
             Admin dashboard
           </h1>
           <p className="text-muted-foreground mt-1 text-sm">
-            Widgets are fixed for now — configurable layout lands in Milestone
-            8.
+            Widgets are fixed for now — configurable layout lands in a later
+            milestone.
           </p>
         </div>
-        <Button asChild variant="outline">
-          <Link href="/admin/custom-fields">Ticket custom fields</Link>
-        </Button>
+        <div className="flex gap-2">
+          <Button asChild variant="outline">
+            <Link href="/admin/custom-fields">Custom fields</Link>
+          </Button>
+          <Button asChild variant="outline">
+            <Link href="/admin/custom-entities">Custom tables</Link>
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">

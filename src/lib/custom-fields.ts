@@ -1,7 +1,15 @@
-import type { CustomFieldType } from "@/generated/prisma/enums";
+import type {
+  CustomEntityFieldType,
+  CustomFieldType,
+} from "@/generated/prisma/enums";
 
+// Shared between Ticket/Asset custom fields (Section 5.1, CustomFieldType —
+// no RELATION) and custom entity table fields (Section 5.4,
+// CustomEntityFieldType — adds RELATION). RELATION only gets a presence
+// check here; whether the linked id actually exists is a DB lookup done by
+// the async sync layer (custom-entity-sync.ts), not this pure function.
 export type FieldDefinitionLike = {
-  fieldType: CustomFieldType;
+  fieldType: CustomFieldType | CustomEntityFieldType;
   options: unknown;
   required: boolean;
 };

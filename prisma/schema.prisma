@@ -26,14 +26,15 @@ model User {
   sessions      Session[]
   accounts      Account[]
 
-  assignedTickets   Ticket[]           @relation("TicketAssignee")
-  createdTickets    Ticket[]           @relation("TicketCreatedBy")
-  ticketComments    TicketComment[]
-  ownedAssets       Asset[]
-  assetHistory      AssetHistory[]
-  attachments       Attachment[]
-  activityLog       ActivityLog[]
-  dashboardConfig   DashboardConfig?
+  assignedTickets     Ticket[]             @relation("TicketAssignee")
+  createdTickets      Ticket[]             @relation("TicketCreatedBy")
+  ticketComments      TicketComment[]
+  ownedAssets         Asset[]
+  assetHistory        AssetHistory[]
+  attachments         Attachment[]
+  activityLog         ActivityLog[]
+  dashboardConfig     DashboardConfig?
+  customEntityRecords CustomEntityRecord[]
 
   @@unique([email])
   @@map("user")
@@ -119,6 +120,27 @@ enum CustomFieldType {
   SELECT
   DATE
   BOOLEAN
+}
+
+// Section 5.4 — a separate field-type enum from CustomFieldType above:
+// custom entity tables additionally support linking a record to a built-in
+// entity, which Ticket/Asset custom fields deliberately don't need.
+enum CustomEntityFieldType {
+  TEXT
+  NUMBER
+  SELECT
+  DATE
+  BOOLEAN
+  RELATION
+}
+
+// What a RELATION field points at. v1 only links to built-in entities —
+// no custom-entity-to-custom-entity relations, to avoid self-referential
+// UI complexity before there's a real need for it (Section 5.4).
+enum RelationTargetType {
+  TICKET
+  ASSET
+  USER
 }
 
 model Branch {
@@ -319,6 +341,76 @@ model CustomFieldValue {
   @@index([entityId])
   @@index([fieldDefinitionId])
   @@map("custom_field_value")
+}
+
+// Section 5.4 — a whole admin-defined table (e.g. "Maintenance"), standalone
+// and first-class alongside Ticket/Asset. Deliberately a parallel set of
+// tables rather than a retrofit of CustomFieldDefinition's entity_type enum
+// into something dynamic — Ticket/Asset custom fields stay exactly as they
+// are above.
+model CustomEntityDefinition {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  order     Int
+  createdAt DateTime @default(now())
+
+  fields  CustomEntityFieldDefinition[]
+  records CustomEntityRecord[]
+
+  @@map("custom_entity_definition")
+}
+
+model CustomEntityFieldDefinition {
+  id                 String                 @id @default(cuid())
+  entityDefinitionId String
+  entityDefinition   CustomEntityDefinition @relation(fields: [entityDefinitionId], references: [id], onDelete: Cascade)
+  name               String
+  fieldType          CustomEntityFieldType
+  options            Json?
+  // Only set when fieldType is RELATION — which built-in entity this field
+  // links a record to.
+  relationTarget     RelationTargetType?
+  required           Boolean                @default(false)
+  order              Int
+
+  values CustomEntityFieldValue[]
+
+  @@index([entityDefinitionId])
+  @@map("custom_entity_field_definition")
+}
+
+// One row in an admin-defined table.
+model CustomEntityRecord {
+  id                 String                 @id @default(cuid())
+  entityDefinitionId String
+  entityDefinition   CustomEntityDefinition @relation(fields: [entityDefinitionId], references: [id], onDelete: Cascade)
+  createdById        String
+  createdBy          User                   @relation(fields: [createdById], references: [id])
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
+
+  values CustomEntityFieldValue[]
+
+  @@index([entityDefinitionId])
+  @@map("custom_entity_record")
+}
+
+// Same EAV shape as CustomFieldValue (Section 5.1) — for a RELATION field,
+// value stores the target row's id (a Ticket/Asset/User id depending on the
+// field definition's relationTarget).
+model CustomEntityFieldValue {
+  id                String                      @id @default(cuid())
+  recordId          String
+  record            CustomEntityRecord          @relation(fields: [recordId], references: [id], onDelete: Cascade)
+  fieldDefinitionId String
+  fieldDefinition   CustomEntityFieldDefinition @relation(fields: [fieldDefinitionId], references: [id], onDelete: Cascade)
+  value             String
+
+  @@unique([recordId, fieldDefinitionId])
+  @@index([recordId])
+  @@index([fieldDefinitionId])
+  @@map("custom_entity_field_value")
 }
 
 model DashboardConfig {

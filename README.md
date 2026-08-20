@@ -55,6 +55,6 @@ Not automated — needs a few one-time steps in Vercel/Supabase's own dashboards
 
 ## Status
 
-Milestones 1–4, 6, and 7 (scaffold, ticket CRUD, asset CRUD, admin dashboard, custom fields
-on tickets and assets) done. Milestone 5 (deploy) is blocked on creating the Vercel/Supabase
-projects by hand — see Deploying above.
+Milestones 1–4 and 6–8 (scaffold, ticket CRUD, asset CRUD, admin dashboard, custom fields on
+tickets and assets, custom entity tables) done. Milestone 5 (deploy) is blocked on creating
+the Vercel/Supabase projects by hand — see Deploying above.

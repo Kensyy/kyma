@@ -3,8 +3,25 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { useCustomEntityDefinitions } from "@/hooks/use-custom-entities";
 import { WaveMark } from "@/components/wave-mark";
 import { UserMenu } from "@/components/user-menu";
+
+const TABLE_ICON = (
+  <svg
+    width="17"
+    height="17"
+    viewBox="0 0 20 20"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.6"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <rect x="2.5" y="3.5" width="15" height="13" rx="1.5" />
+    <path d="M2.5 8h15M7.5 3.5v13" />
+  </svg>
+);
 
 type NavItem = {
   href: string;
@@ -102,6 +119,10 @@ export function SidebarNav({
   userName: string;
 }) {
   const pathname = usePathname();
+  // Standalone, first-class nav entries — sits alongside Ticket/Asset, not
+  // nested under Admin (Section 5.4). Visible to every role since anyone can
+  // read/create records; only the admin field-management screens are gated.
+  const { data: customEntityData } = useCustomEntityDefinitions();
 
   return (
     <div className="bg-sidebar text-sidebar-foreground flex h-screen w-58 min-w-58 flex-col border-r p-3.5">
@@ -130,6 +151,23 @@ export function SidebarNav({
               </Link>
             );
           })}
+        {customEntityData?.definitions.map((table) => {
+          const href = `/tables/${table.slug}`;
+          const active = pathname.startsWith(href);
+          return (
+            <Link
+              key={table.id}
+              href={href}
+              className={cn(
+                "text-sidebar-foreground/70 hover:bg-sidebar-accent/60 flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm font-medium transition-colors",
+                active && "bg-sidebar-accent text-sidebar-accent-foreground",
+              )}
+            >
+              {TABLE_ICON}
+              {table.name}
+            </Link>
+          );
+        })}
       </nav>
       <div className="mt-auto border-t pt-3">
         <UserMenu name={userName} role={role} />
