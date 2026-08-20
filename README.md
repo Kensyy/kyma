@@ -2,7 +2,7 @@
 
 A schema-driven internal IT operations platform — ticket tracking, asset/inventory tracking, and an admin dashboard, built to demonstrate real enterprise software patterns rather than a tutorial CRUD app.
 
-The differentiator: statuses, categories, and (soon) custom fields are admin-configurable data, not hardcoded enums.
+The differentiator: statuses, categories, and custom fields are admin-configurable data, not hardcoded enums.
 
 ## Stack
 
@@ -55,5 +55,6 @@ Not automated — needs a few one-time steps in Vercel/Supabase's own dashboards
 
 ## Status
 
-Milestones 1–4 (scaffold, ticket CRUD, asset CRUD, admin dashboard) done. Milestone 5 (deploy)
-is blocked on creating the Vercel/Supabase projects by hand — see Deploying above.
+Milestones 1–4 and 6 (scaffold, ticket CRUD, asset CRUD, admin dashboard, custom fields on
+tickets) done. Milestone 5 (deploy) is blocked on creating the Vercel/Supabase projects by
+hand — see Deploying above.
