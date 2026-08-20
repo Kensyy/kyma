@@ -4,6 +4,27 @@ import { requireSession } from "@/lib/api-auth";
 import { updateTicketSchema } from "@/lib/validations/ticket";
 import { computeSlaDueAt } from "@/lib/sla";
 import { ticketDetailInclude } from "@/lib/types/ticket";
+import {
+  persistCustomFieldValues,
+  validateCustomFields,
+} from "@/lib/custom-field-sync";
+
+async function loadCustomFields(ticketId: string) {
+  const [definitions, values] = await Promise.all([
+    prisma.customFieldDefinition.findMany({
+      where: { entityType: "TICKET" },
+      orderBy: { order: "asc" },
+    }),
+    prisma.customFieldValue.findMany({ where: { entityId: ticketId } }),
+  ]);
+  const valueByDefId = new Map(
+    values.map((v) => [v.fieldDefinitionId, v.value]),
+  );
+  return definitions.map((definition) => ({
+    definition,
+    value: valueByDefId.get(definition.id) ?? null,
+  }));
+}
 
 export async function GET(
   _request: NextRequest,
@@ -22,10 +43,15 @@ export async function GET(
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  const appSettings = await prisma.appSettings.findFirst();
+  const [appSettings, customFields] = await Promise.all([
+    prisma.appSettings.findFirst(),
+    loadCustomFields(id),
+  ]);
+
   return NextResponse.json({
     ticket,
     ticketPrefix: appSettings?.ticketPrefix ?? "KYM",
+    customFields,
   });
 }
 
@@ -51,13 +77,21 @@ export async function PATCH(
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  const { statusId, priority, ...rest } = parsed.data;
+  const { statusId, priority, customFields, ...rest } = parsed.data;
 
   if (statusId) {
     const status = await prisma.status.findUnique({ where: { id: statusId } });
     if (!status || status.entityType !== "TICKET") {
       return NextResponse.json({ error: "Invalid status" }, { status: 400 });
     }
+  }
+
+  const fieldsResult = await validateCustomFields("TICKET", customFields);
+  if (!fieldsResult.ok) {
+    return NextResponse.json(
+      { error: { customFields: fieldsResult.errors } },
+      { status: 400 },
+    );
   }
 
   // Recompute the SLA window whenever priority changes (a re-triaged
@@ -72,6 +106,8 @@ export async function PATCH(
     data: { ...rest, statusId, priority, slaDueAt },
     include: ticketDetailInclude,
   });
+
+  await persistCustomFieldValues(id, customFields, fieldsResult.definitions);
 
   return NextResponse.json({ ticket });
 }

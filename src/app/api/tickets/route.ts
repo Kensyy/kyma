@@ -5,6 +5,10 @@ import { requireSession } from "@/lib/api-auth";
 import { createTicketSchema } from "@/lib/validations/ticket";
 import { computeSlaDueAt } from "@/lib/sla";
 import { ticketListInclude } from "@/lib/types/ticket";
+import {
+  persistCustomFieldValues,
+  validateCustomFields,
+} from "@/lib/custom-field-sync";
 
 export async function GET(request: NextRequest) {
   const session = await requireSession();
@@ -60,12 +64,29 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { statusId, categoryId, assigneeId, branchId, priority, ...rest } =
-    parsed.data;
+  const {
+    statusId,
+    categoryId,
+    assigneeId,
+    branchId,
+    priority,
+    customFields,
+    ...rest
+  } = parsed.data;
 
   const status = await prisma.status.findUnique({ where: { id: statusId } });
   if (!status || status.entityType !== "TICKET") {
     return NextResponse.json({ error: "Invalid status" }, { status: 400 });
+  }
+
+  const fieldsResult = await validateCustomFields("TICKET", customFields, {
+    requireAllRequired: true,
+  });
+  if (!fieldsResult.ok) {
+    return NextResponse.json(
+      { error: { customFields: fieldsResult.errors } },
+      { status: 400 },
+    );
   }
 
   const ticket = await prisma.ticket.create({
@@ -81,6 +102,12 @@ export async function POST(request: NextRequest) {
     },
     include: ticketListInclude,
   });
+
+  await persistCustomFieldValues(
+    ticket.id,
+    customFields,
+    fieldsResult.definitions,
+  );
 
   return NextResponse.json({ ticket }, { status: 201 });
 }

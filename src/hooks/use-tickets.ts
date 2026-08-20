@@ -1,7 +1,11 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { StatusModel, CategoryModel } from "@/generated/prisma/models";
+import type {
+  StatusModel,
+  CategoryModel,
+  CustomFieldDefinitionModel,
+} from "@/generated/prisma/models";
 import { apiFetch } from "@/lib/api-client";
 import type { TicketDetail, TicketListItem } from "@/lib/types/ticket";
 import type {
@@ -11,6 +15,11 @@ import type {
 } from "@/lib/validations/ticket";
 
 export type AssignableUser = { id: string; name: string; role: string };
+
+export type CustomFieldValueEntry = {
+  definition: CustomFieldDefinitionModel;
+  value: string | null;
+};
 
 export type TicketFilters = {
   status?: string;
@@ -81,9 +90,11 @@ export function useTicket(id: string) {
   return useQuery({
     queryKey: ["tickets", id],
     queryFn: () =>
-      apiFetch<{ ticket: TicketDetail; ticketPrefix: string }>(
-        `/api/tickets/${id}`,
-      ),
+      apiFetch<{
+        ticket: TicketDetail;
+        ticketPrefix: string;
+        customFields: CustomFieldValueEntry[];
+      }>(`/api/tickets/${id}`),
   });
 }
 

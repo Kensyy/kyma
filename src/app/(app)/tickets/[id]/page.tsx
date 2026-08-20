@@ -17,6 +17,8 @@ import {
 import { StatusBadge } from "@/components/status-badge";
 import { PriorityBadge } from "@/components/priority-badge";
 import { UserAvatar } from "@/components/user-avatar";
+import { DynamicFieldInput } from "@/components/dynamic-field-input";
+import { useDebouncedCallback } from "@/hooks/use-debounced-callback";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -47,6 +49,25 @@ export default function TicketDetailPage({
   const [reply, setReply] = useState("");
   const [isInternal, setIsInternal] = useState(false);
 
+  // Custom field edits (free-text/number typing) autosave debounced, unlike
+  // the fixed Select-driven properties below which save instantly since
+  // they only fire once per pick. Drafts hold the in-progress typed value
+  // so the input stays responsive while the save is still debounced/in
+  // flight, rather than visually reverting until the next refetch lands.
+  const [customFieldDrafts, setCustomFieldDrafts] = useState<
+    Record<string, string | null>
+  >({});
+  const debouncedCustomFieldUpdate = useDebouncedCallback(
+    (fieldId: string, value: string | null) => {
+      updateTicket
+        .mutateAsync({ customFields: { [fieldId]: value } })
+        .catch(() => {
+          toast.error("Could not update the ticket.");
+        });
+    },
+    600,
+  );
+
   if (isLoading || !data) {
     return (
       <div className="flex flex-1 flex-col gap-4 p-7">
@@ -57,7 +78,7 @@ export default function TicketDetailPage({
     );
   }
 
-  const { ticket, ticketPrefix } = data;
+  const { ticket, ticketPrefix, customFields } = data;
   const overdue = isSlaOverdue(
     ticket.slaDueAt ? new Date(ticket.slaDueAt) : null,
     ticket.status.isTerminal,
@@ -279,6 +300,25 @@ export default function TicketDetailPage({
             </SelectContent>
           </Select>
         </PropertyField>
+
+        {customFields.map((entry) => (
+          <PropertyField
+            key={entry.definition.id}
+            label={entry.definition.name}
+          >
+            <DynamicFieldInput
+              definition={entry.definition}
+              value={customFieldDrafts[entry.definition.id] ?? entry.value}
+              onChange={(value) => {
+                setCustomFieldDrafts((prev) => ({
+                  ...prev,
+                  [entry.definition.id]: value,
+                }));
+                debouncedCustomFieldUpdate(entry.definition.id, value);
+              }}
+            />
+          </PropertyField>
+        ))}
 
         <div className="text-muted-foreground flex flex-col gap-1 border-t pt-3 text-[11.5px]">
           <span>Requester: {ticket.createdBy.name}</span>
