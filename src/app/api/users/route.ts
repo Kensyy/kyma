@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/api-auth";
 
 // Assignable users — Staff and Admin only (End User isn't a staff-facing
-// assignee per the v1 scope decision in CLAUDE.md Section 10).
+// assignee in v1).
 export async function GET() {
   const session = await requireSession();
   if ("error" in session) return session.error;

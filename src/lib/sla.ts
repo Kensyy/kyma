@@ -1,7 +1,7 @@
 import type { Priority } from "@/generated/prisma/enums";
 
 // Simple fixed SLA policy by priority — no per-org configuration yet
-// (CLAUDE.md Section 10 leaves finer SLA rules for later polish).
+// (finer SLA rules are left for later polish).
 const SLA_HOURS_BY_PRIORITY: Record<Priority, number> = {
   URGENT: 4,
   HIGH: 24,
