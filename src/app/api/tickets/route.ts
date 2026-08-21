@@ -31,6 +31,10 @@ export async function GET(request: NextRequest) {
   if (assignee === "me") where.assigneeId = session.user.id;
   else if (assignee === "unassigned") where.assigneeId = null;
   else if (assignee) where.assigneeId = assignee;
+  // Self-service scoping: an End User only ever sees tickets they reported
+  // themselves — overrides any assignee filter above, since "my"/"unassigned"
+  // tabs aren't meaningful once every row is already theirs.
+  if (session.user.role === "END_USER") where.createdById = session.user.id;
   if (q) {
     where.OR = [
       { title: { contains: q, mode: "insensitive" } },
@@ -69,12 +73,17 @@ export async function POST(request: NextRequest) {
   const {
     statusId,
     categoryId,
-    assigneeId,
+    // An End User has no assignee picker in the create form — stripping it
+    // server-side too means a hand-crafted request can't hand a ticket
+    // straight to a specific staff member either.
+    assigneeId: requestedAssigneeId,
     branchId,
     priority,
     customFields,
     ...rest
   } = parsed.data;
+  const assigneeId =
+    session.user.role === "END_USER" ? undefined : requestedAssigneeId;
 
   const status = await prisma.status.findUnique({ where: { id: statusId } });
   if (!status || status.entityType !== "TICKET") {

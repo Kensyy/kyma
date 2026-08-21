@@ -18,13 +18,14 @@ pnpm db:migrate         # applies the schema and seeds lookup data + an admin us
 pnpm dev
 ```
 
-The seed script creates four accounts for local development:
+The seed script creates five accounts for local development:
 
 ```
-admin@kyma.local / kyma-dev-password    (Admin)
-priya@kyma.local / kyma-dev-password    (Staff)
-sam@kyma.local   / kyma-dev-password    (Staff)
-demo@kyma.local  / kyma-demo-password   (Admin, read-only)
+admin@kyma.local  / kyma-dev-password    (Admin)
+priya@kyma.local  / kyma-dev-password    (Staff)
+sam@kyma.local    / kyma-dev-password    (Staff)
+jordan@kyma.local / kyma-dev-password    (End User — self-service, own tickets only)
+demo@kyma.local   / kyma-demo-password   (Admin, read-only)
 ```
 
 The sign-in page has a "View live demo" button that logs into the `demo@kyma.local`

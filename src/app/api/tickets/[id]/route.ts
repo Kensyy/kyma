@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireSession, requireWriteSession } from "@/lib/api-auth";
+import {
+  requireSession,
+  requireStaff,
+  requireWriteSession,
+} from "@/lib/api-auth";
 import { updateTicketSchema } from "@/lib/validations/ticket";
 import { computeTicketSlaDueAt } from "@/lib/sla-policy";
 import { ticketDetailInclude } from "@/lib/types/ticket";
@@ -42,9 +46,22 @@ export async function GET(
     include: ticketDetailInclude,
   });
 
-  if (!ticket) {
+  // 404 rather than 403 for a ticket that isn't theirs — an End User
+  // shouldn't be able to tell the difference between "doesn't exist" and
+  // "exists but isn't yours" by probing ids.
+  if (
+    !ticket ||
+    (session.user.role === "END_USER" && ticket.createdById !== session.user.id)
+  ) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
+
+  // Internal notes are staff-only, even on a ticket the End User reported
+  // themselves.
+  const visibleTicket =
+    session.user.role === "END_USER"
+      ? { ...ticket, comments: ticket.comments.filter((c) => !c.isInternal) }
+      : ticket;
 
   const [appSettings, customFields] = await Promise.all([
     prisma.appSettings.findFirst(),
@@ -52,7 +69,7 @@ export async function GET(
   ]);
 
   return NextResponse.json({
-    ticket,
+    ticket: visibleTicket,
     ticketPrefix: appSettings?.ticketPrefix ?? "KYM",
     customFields,
   });
@@ -64,6 +81,8 @@ export async function PATCH(
 ) {
   const session = await requireWriteSession();
   if ("error" in session) return session.error;
+  const forbidden = requireStaff(session.user);
+  if (forbidden) return forbidden;
 
   const { id } = await params;
   const body = await request.json();

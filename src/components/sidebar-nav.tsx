@@ -29,12 +29,14 @@ type NavItem = {
   label: string;
   icon: React.ReactNode;
   adminOnly?: boolean;
+  staffOnly?: boolean;
 };
 
 const navItems: NavItem[] = [
   {
     href: "/dashboard",
     label: "Dashboard",
+    staffOnly: true,
     icon: (
       <svg
         width="17"
@@ -74,6 +76,7 @@ const navItems: NavItem[] = [
   {
     href: "/assets",
     label: "Assets",
+    staffOnly: true,
     icon: (
       <svg
         width="17"
@@ -138,6 +141,7 @@ export function SidebarNav({
       <nav className="flex flex-col gap-0.5">
         {navItems
           .filter((item) => !item.adminOnly || role === "ADMIN")
+          .filter((item) => !item.staffOnly || role !== "END_USER")
           .map((item) => {
             const active = pathname.startsWith(item.href);
             return (

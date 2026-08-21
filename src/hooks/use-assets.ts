@@ -35,13 +35,17 @@ export function useAssetTypes() {
   });
 }
 
-export function useAssets(filters: AssetFilters) {
+export function useAssets(
+  filters: AssetFilters,
+  options?: { enabled?: boolean },
+) {
   return useQuery({
     queryKey: ["assets", filters],
     queryFn: () =>
       apiFetch<{ assets: AssetListItem[] }>(
         `/api/assets${queryString(filters)}`,
       ),
+    enabled: options?.enabled ?? true,
   });
 }
 

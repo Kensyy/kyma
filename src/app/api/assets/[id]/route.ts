@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireSession, requireWriteSession } from "@/lib/api-auth";
+import {
+  requireSession,
+  requireStaff,
+  requireWriteSession,
+} from "@/lib/api-auth";
 import { updateAssetSchema } from "@/lib/validations/asset";
 import { assetDetailInclude } from "@/lib/types/asset";
 import {
@@ -33,6 +37,8 @@ export async function GET(
 ) {
   const session = await requireSession();
   if ("error" in session) return session.error;
+  const forbidden = requireStaff(session.user);
+  if (forbidden) return forbidden;
 
   const { id } = await params;
   const asset = await prisma.asset.findUnique({

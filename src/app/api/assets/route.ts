@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
-import { requireSession, requireWriteSession } from "@/lib/api-auth";
+import {
+  requireSession,
+  requireStaff,
+  requireWriteSession,
+} from "@/lib/api-auth";
 import { createAssetSchema } from "@/lib/validations/asset";
 import { assetListInclude } from "@/lib/types/asset";
 import {
@@ -13,6 +17,8 @@ import { logActivity } from "@/lib/activity-log";
 export async function GET(request: NextRequest) {
   const session = await requireSession();
   if ("error" in session) return session.error;
+  const forbidden = requireStaff(session.user);
+  if (forbidden) return forbidden;
 
   const params = request.nextUrl.searchParams;
   const statusId = params.get("status");

@@ -64,3 +64,17 @@ export function requireAdmin(user: SessionUser): NextResponse | null {
   }
   return null;
 }
+
+/**
+ * Blocks the End User self-service role from staff-only surfaces (ticket
+ * lifecycle changes, the asset inventory) — an End User can report and
+ * follow up on their own tickets, but everything else here is Staff/Admin
+ * territory. Ticket ownership scoping itself lives inline in the ticket
+ * routes since it depends on the resource, not just the role.
+ */
+export function requireStaff(user: SessionUser): NextResponse | null {
+  if (user.role === "END_USER") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+  return null;
+}

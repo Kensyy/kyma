@@ -3,6 +3,7 @@
 import { use, useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
+import { useSession } from "@/lib/auth-client";
 import { formatTicketNumber } from "@/lib/ticket-number";
 import { relativeTime } from "@/lib/relative-time";
 import { isSlaOverdue } from "@/lib/sla";
@@ -40,11 +41,18 @@ export default function TicketDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const { data: session } = useSession();
+  // Self-service scoping (Section 5.4-adjacent) — an End User gets a
+  // read-only properties panel: they can report and follow up on a ticket,
+  // but every PATCH on it is rejected server-side, so nothing here should
+  // look editable in the first place.
+  const isEndUser =
+    (session?.user as { role?: string } | undefined)?.role === "END_USER";
   const { data, isLoading } = useTicket(id);
   const { data: statusData } = useStatuses("TICKET");
   const { data: categoryData } = useCategories("TICKET");
   const { data: userData } = useAssignableUsers();
-  const { data: assetData } = useAssets({});
+  const { data: assetData } = useAssets({}, { enabled: !isEndUser });
   const updateTicket = useUpdateTicket(id);
   const addComment = useAddComment(id);
 
@@ -194,13 +202,19 @@ export default function TicketDetailPage({
               rows={3}
             />
             <div className="flex items-center justify-between border-t pt-2.5">
-              <label className="text-muted-foreground flex items-center gap-2 text-[11.5px]">
-                <Checkbox
-                  checked={isInternal}
-                  onCheckedChange={(checked) => setIsInternal(checked === true)}
-                />
-                Internal note (staff only)
-              </label>
+              {isEndUser ? (
+                <span />
+              ) : (
+                <label className="text-muted-foreground flex items-center gap-2 text-[11.5px]">
+                  <Checkbox
+                    checked={isInternal}
+                    onCheckedChange={(checked) =>
+                      setIsInternal(checked === true)
+                    }
+                  />
+                  Internal note (staff only)
+                </label>
+              )}
               <Button
                 onClick={handleReply}
                 disabled={addComment.isPending || !reply.trim()}
@@ -217,131 +231,164 @@ export default function TicketDetailPage({
           Properties
         </div>
 
-        <PropertyField label="Status">
-          <Select
-            value={ticket.statusId}
-            onValueChange={(statusId) => handleUpdate({ statusId })}
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {statusData?.statuses.map((s) => (
-                <SelectItem key={s.id} value={s.id}>
-                  {s.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </PropertyField>
+        {isEndUser ? (
+          <>
+            <PropertyField label="Status">
+              <StatusBadge
+                label={ticket.status.label}
+                color={ticket.status.color}
+              />
+            </PropertyField>
+            <PropertyField label="Priority">
+              <PriorityBadge priority={ticket.priority} />
+            </PropertyField>
+            <PropertyField label="Category">
+              <span className="text-sm">
+                {ticket.category?.label ?? "None"}
+              </span>
+            </PropertyField>
+            {customFields.map((entry) => (
+              <PropertyField
+                key={entry.definition.id}
+                label={entry.definition.name}
+              >
+                <span className="text-sm">
+                  {formatReadOnlyFieldValue(entry.definition, entry.value)}
+                </span>
+              </PropertyField>
+            ))}
+          </>
+        ) : (
+          <>
+            <PropertyField label="Status">
+              <Select
+                value={ticket.statusId}
+                onValueChange={(statusId) => handleUpdate({ statusId })}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {statusData?.statuses.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>
+                      {s.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </PropertyField>
 
-        <PropertyField label="Priority">
-          <Select
-            value={ticket.priority}
-            onValueChange={(priority) =>
-              handleUpdate({
-                priority: priority as (typeof PRIORITIES)[number],
-              })
-            }
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {PRIORITIES.map((p) => (
-                <SelectItem key={p} value={p}>
-                  {p.charAt(0) + p.slice(1).toLowerCase()}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </PropertyField>
+            <PropertyField label="Priority">
+              <Select
+                value={ticket.priority}
+                onValueChange={(priority) =>
+                  handleUpdate({
+                    priority: priority as (typeof PRIORITIES)[number],
+                  })
+                }
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {PRIORITIES.map((p) => (
+                    <SelectItem key={p} value={p}>
+                      {p.charAt(0) + p.slice(1).toLowerCase()}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </PropertyField>
 
-        <PropertyField label="Assignee">
-          <Select
-            value={ticket.assigneeId ?? "unassigned"}
-            onValueChange={(assigneeId) =>
-              handleUpdate({
-                assigneeId: assigneeId === "unassigned" ? null : assigneeId,
-              })
-            }
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="unassigned">Unassigned</SelectItem>
-              {userData?.users.map((u) => (
-                <SelectItem key={u.id} value={u.id}>
-                  {u.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </PropertyField>
+            <PropertyField label="Assignee">
+              <Select
+                value={ticket.assigneeId ?? "unassigned"}
+                onValueChange={(assigneeId) =>
+                  handleUpdate({
+                    assigneeId: assigneeId === "unassigned" ? null : assigneeId,
+                  })
+                }
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="unassigned">Unassigned</SelectItem>
+                  {userData?.users.map((u) => (
+                    <SelectItem key={u.id} value={u.id}>
+                      {u.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </PropertyField>
 
-        <PropertyField label="Category">
-          <Select
-            value={ticket.categoryId ?? "none"}
-            onValueChange={(categoryId) =>
-              handleUpdate({
-                categoryId: categoryId === "none" ? null : categoryId,
-              })
-            }
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">None</SelectItem>
-              {categoryData?.categories.map((c) => (
-                <SelectItem key={c.id} value={c.id}>
-                  {c.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </PropertyField>
+            <PropertyField label="Category">
+              <Select
+                value={ticket.categoryId ?? "none"}
+                onValueChange={(categoryId) =>
+                  handleUpdate({
+                    categoryId: categoryId === "none" ? null : categoryId,
+                  })
+                }
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
+                  {categoryData?.categories.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </PropertyField>
 
-        <PropertyField label="Asset">
-          <Select
-            value={ticket.assetId ?? "none"}
-            onValueChange={(assetId) =>
-              handleUpdate({ assetId: assetId === "none" ? null : assetId })
-            }
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">None</SelectItem>
-              {assetData?.assets.map((a) => (
-                <SelectItem key={a.id} value={a.id}>
-                  {a.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </PropertyField>
+            <PropertyField label="Asset">
+              <Select
+                value={ticket.assetId ?? "none"}
+                onValueChange={(assetId) =>
+                  handleUpdate({
+                    assetId: assetId === "none" ? null : assetId,
+                  })
+                }
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
+                  {assetData?.assets.map((a) => (
+                    <SelectItem key={a.id} value={a.id}>
+                      {a.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </PropertyField>
 
-        {customFields.map((entry) => (
-          <PropertyField
-            key={entry.definition.id}
-            label={entry.definition.name}
-          >
-            <DynamicFieldInput
-              definition={entry.definition}
-              value={customFieldDrafts[entry.definition.id] ?? entry.value}
-              onChange={(value) => {
-                setCustomFieldDrafts((prev) => ({
-                  ...prev,
-                  [entry.definition.id]: value,
-                }));
-                debouncedCustomFieldUpdate(entry.definition.id, value);
-              }}
-            />
-          </PropertyField>
-        ))}
+            {customFields.map((entry) => (
+              <PropertyField
+                key={entry.definition.id}
+                label={entry.definition.name}
+              >
+                <DynamicFieldInput
+                  definition={entry.definition}
+                  value={customFieldDrafts[entry.definition.id] ?? entry.value}
+                  onChange={(value) => {
+                    setCustomFieldDrafts((prev) => ({
+                      ...prev,
+                      [entry.definition.id]: value,
+                    }));
+                    debouncedCustomFieldUpdate(entry.definition.id, value);
+                  }}
+                />
+              </PropertyField>
+            ))}
+          </>
+        )}
 
         <div className="text-muted-foreground flex flex-col gap-1 border-t pt-3 text-[11.5px]">
           <span>Requester: {ticket.createdBy.name}</span>
@@ -361,6 +408,16 @@ export default function TicketDetailPage({
       </div>
     </div>
   );
+}
+
+function formatReadOnlyFieldValue(
+  definition: { fieldType: string },
+  value: string | null,
+) {
+  if (value === null) return "—";
+  if (definition.fieldType === "BOOLEAN")
+    return value === "true" ? "Yes" : "No";
+  return value;
 }
 
 function PropertyField({

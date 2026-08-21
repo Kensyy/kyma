@@ -52,7 +52,9 @@ export default function SignInPage() {
       return;
     }
 
-    router.push("/dashboard");
+    // "/" (not "/dashboard" directly) so the root route's role check can
+    // send an End User to their ticket list instead.
+    router.push("/");
     router.refresh();
   }
 
@@ -74,7 +76,9 @@ export default function SignInPage() {
       return;
     }
 
-    router.push("/dashboard");
+    // "/" (not "/dashboard" directly) so the root route's role check can
+    // send an End User to their ticket list instead.
+    router.push("/");
     router.refresh();
   }
 

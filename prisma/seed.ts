@@ -95,7 +95,7 @@ async function main() {
   async function seedUser(
     email: string,
     name: string,
-    role: "ADMIN" | "STAFF",
+    role: "ADMIN" | "STAFF" | "END_USER",
     password: string,
     isDemo = false,
   ) {
@@ -127,6 +127,15 @@ async function main() {
   await seedUser("admin@kyma.local", "Admin", "ADMIN", "kyma-dev-password");
   await seedUser("priya@kyma.local", "Priya N.", "STAFF", "kyma-dev-password");
   await seedUser("sam@kyma.local", "Sam O.", "STAFF", "kyma-dev-password");
+  // Self-service role (End User self-service scoping) — reports/follows up
+  // on their own tickets only, per requireStaff()/inline ownership checks
+  // across the ticket routes.
+  await seedUser(
+    "jordan@kyma.local",
+    "Jordan End User",
+    "END_USER",
+    "kyma-dev-password",
+  );
   // Public-demo account (Section 10) — kept separate from admin@kyma.local
   // above so the real dev/admin login stays unrestricted for local testing.
   // requireWriteSession() blocks every mutation for this account; recruiters
