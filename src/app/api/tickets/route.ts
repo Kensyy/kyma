@@ -3,7 +3,7 @@ import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/api-auth";
 import { createTicketSchema } from "@/lib/validations/ticket";
-import { computeSlaDueAt } from "@/lib/sla";
+import { computeTicketSlaDueAt } from "@/lib/sla-policy";
 import { ticketListInclude } from "@/lib/types/ticket";
 import {
   persistCustomFieldValues,
@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
       assigneeId,
       branchId,
       createdById: session.user.id,
-      slaDueAt: computeSlaDueAt(priority),
+      slaDueAt: await computeTicketSlaDueAt(priority, categoryId ?? null),
     },
     include: ticketListInclude,
   });

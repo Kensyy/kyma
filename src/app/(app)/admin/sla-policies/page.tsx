@@ -1,0 +1,15 @@
+import { headers } from "next/headers";
+import { auth } from "@/lib/auth";
+import { ComingSoon } from "@/components/coming-soon";
+import { SlaPoliciesAdmin } from "@/components/sla-policies-admin";
+
+export default async function AdminSlaPoliciesPage() {
+  const session = await auth.api.getSession({ headers: await headers() });
+  const role = (session?.user as { role?: string } | undefined)?.role;
+
+  if (role !== "ADMIN") {
+    return <ComingSoon title="Admins only" milestone="—" />;
+  }
+
+  return <SlaPoliciesAdmin />;
+}

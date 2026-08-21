@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { inboundTicketSchema } from "@/lib/validations/integration";
-import { computeSlaDueAt } from "@/lib/sla";
+import { computeTicketSlaDueAt } from "@/lib/sla-policy";
 import { ticketListInclude } from "@/lib/types/ticket";
 import { logActivity } from "@/lib/activity-log";
 import { dispatchWebhook, getIntegrationSystemUser } from "@/lib/webhooks";
@@ -63,7 +63,7 @@ export async function POST(
       createdById: systemUser.id,
       sourceId: source.id,
       externalRef: parsed.data.externalRef,
-      slaDueAt: computeSlaDueAt(priority),
+      slaDueAt: await computeTicketSlaDueAt(priority, null),
     },
     include: ticketListInclude,
   });

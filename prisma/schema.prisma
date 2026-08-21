@@ -181,10 +181,29 @@ model Category {
   label      String
   order      Int
 
-  tickets Ticket[]
+  tickets     Ticket[]
+  slaPolicies SlaPolicy[]
 
   @@unique([entityType, label])
   @@map("category")
+}
+
+// Section 5.6 — SLA due dates were a fixed formula keyed only on priority
+// (DEFAULT_SLA_HOURS_BY_PRIORITY in sla.ts); this makes the hours data,
+// same "definition, not code" pattern as everything else. A row with
+// categoryId set overrides the priority-only default for that category;
+// falling back to the hardcoded default when no policy row exists at all
+// keeps the app usable before an admin configures anything.
+model SlaPolicy {
+  id         String    @id @default(cuid())
+  priority   Priority
+  categoryId String?
+  category   Category? @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  hours      Int
+  createdAt  DateTime  @default(now())
+
+  @@unique([priority, categoryId])
+  @@map("sla_policy")
 }
 
 model AssetType {

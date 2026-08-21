@@ -55,9 +55,9 @@ Not automated — needs a few one-time steps in Vercel/Supabase's own dashboards
 
 ## Status
 
-Milestones 1–4 and 6–11 (scaffold, ticket CRUD, asset CRUD, admin dashboard, custom fields on
+Milestones 1–4 and 6–12 (scaffold, ticket CRUD, asset CRUD, admin dashboard, custom fields on
 tickets and assets, custom entity tables with relations, configurable dashboard widgets,
 in-app notifications, audit log, ticket↔asset linking, inbound/outbound integration
-webhooks) done. Milestone 5 (deploy) is blocked on creating the Vercel/Supabase projects by
-hand — see Deploying above. File attachments are deferred until
+webhooks, configurable SLA policies) done. Milestone 5 (deploy) is blocked on creating the
+Vercel/Supabase projects by hand — see Deploying above. File attachments are deferred until
 those accounts exist.

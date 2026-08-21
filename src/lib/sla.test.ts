@@ -1,19 +1,47 @@
 import { describe, expect, it } from "vitest";
-import { computeSlaDueAt, isSlaOverdue } from "./sla";
+import { addHours, isSlaOverdue, resolveSlaHours } from "./sla";
 
-describe("computeSlaDueAt", () => {
-  const from = new Date("2026-01-01T00:00:00Z");
-
-  it("gives urgent tickets a 4 hour window", () => {
-    expect(computeSlaDueAt("URGENT", from).toISOString()).toBe(
-      "2026-01-01T04:00:00.000Z",
-    );
+describe("resolveSlaHours", () => {
+  it("falls back to the hardcoded default when no policies exist", () => {
+    expect(resolveSlaHours("URGENT", null, [])).toBe(4);
+    expect(resolveSlaHours("LOW", null, [])).toBe(120);
   });
 
-  it("gives low priority tickets a 5 day window", () => {
-    expect(computeSlaDueAt("LOW", from).toISOString()).toBe(
-      "2026-01-06T00:00:00.000Z",
-    );
+  it("uses a priority-only policy over the hardcoded default", () => {
+    const policies = [
+      { priority: "URGENT" as const, categoryId: null, hours: 2 },
+    ];
+    expect(resolveSlaHours("URGENT", null, policies)).toBe(2);
+  });
+
+  it("uses a category-specific policy over the priority-only one", () => {
+    const policies = [
+      { priority: "URGENT" as const, categoryId: null, hours: 4 },
+      { priority: "URGENT" as const, categoryId: "cat-network", hours: 1 },
+    ];
+    expect(resolveSlaHours("URGENT", "cat-network", policies)).toBe(1);
+  });
+
+  it("falls back to the priority-only policy for a category with no override", () => {
+    const policies = [
+      { priority: "URGENT" as const, categoryId: null, hours: 4 },
+    ];
+    expect(resolveSlaHours("URGENT", "cat-hardware", policies)).toBe(4);
+  });
+
+  it("doesn't let a different priority's category policy leak through", () => {
+    const policies = [
+      { priority: "HIGH" as const, categoryId: "cat-network", hours: 1 },
+    ];
+    expect(resolveSlaHours("URGENT", "cat-network", policies)).toBe(4);
+  });
+});
+
+describe("addHours", () => {
+  it("adds the given number of hours", () => {
+    const from = new Date("2026-01-01T00:00:00Z");
+    expect(addHours(from, 4).toISOString()).toBe("2026-01-01T04:00:00.000Z");
+    expect(addHours(from, 120).toISOString()).toBe("2026-01-06T00:00:00.000Z");
   });
 });
 

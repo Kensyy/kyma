@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/api-auth";
 import { updateTicketSchema } from "@/lib/validations/ticket";
-import { computeSlaDueAt } from "@/lib/sla";
+import { computeTicketSlaDueAt } from "@/lib/sla-policy";
 import { ticketDetailInclude } from "@/lib/types/ticket";
 import {
   persistCustomFieldValues,
@@ -97,11 +97,17 @@ export async function PATCH(
     );
   }
 
-  // Recompute the SLA window whenever priority changes (a re-triaged
-  // ticket gets a fresh deadline based on its new priority).
+  // Recompute the SLA window whenever priority or category changes — both
+  // can affect which SlaPolicy row applies (Section 5.6), not just priority.
+  const priorityChanged = priority && priority !== existing.priority;
+  const categoryChanged =
+    "categoryId" in rest && rest.categoryId !== existing.categoryId;
   const slaDueAt =
-    priority && priority !== existing.priority
-      ? computeSlaDueAt(priority)
+    priorityChanged || categoryChanged
+      ? await computeTicketSlaDueAt(
+          priority ?? existing.priority,
+          (categoryChanged ? rest.categoryId : existing.categoryId) ?? null,
+        )
       : undefined;
 
   const ticket = await prisma.ticket.update({
