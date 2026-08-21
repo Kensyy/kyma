@@ -477,6 +477,11 @@ model IntegrationSource {
   id        String   @id @default(cuid())
   name      String   @unique
   apiKey    String   @unique @default(cuid())
+  // Pausing a misbehaving or retired source is the common case, not
+  // deleting it — deleting loses the URL and detaches it from tickets
+  // already created through it. Defaults on so existing sources keep
+  // working when this field was added.
+  active    Boolean  @default(true)
   createdAt DateTime @default(now())
 
   tickets Ticket[]

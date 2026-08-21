@@ -34,6 +34,19 @@ export function useCreateIntegrationSource() {
   });
 }
 
+export function useUpdateIntegrationSource(id: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (active: boolean) =>
+      apiFetch<{ source: IntegrationSourceModel }>(
+        `/api/integrations/sources/${id}`,
+        { method: "PATCH", body: JSON.stringify({ active }) },
+      ),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ["integrationSources"] }),
+  });
+}
+
 export function useDeleteIntegrationSource() {
   const queryClient = useQueryClient();
   return useMutation({

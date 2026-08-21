@@ -8,6 +8,7 @@ import {
   useDeleteIntegrationSource,
   useDeleteWebhookSubscription,
   useIntegrationSources,
+  useUpdateIntegrationSource,
   useUpdateWebhookSubscription,
   useWebhookSubscriptions,
 } from "@/hooks/use-integrations";
@@ -36,6 +37,45 @@ const EVENT_LABEL: Record<(typeof WEBHOOK_EVENTS)[number], string> = {
   TICKET_STATUS_CHANGED: "Ticket status changed",
   TICKET_ASSIGNED: "Ticket assigned",
 };
+
+function SourceRow({
+  id,
+  name,
+  apiKey,
+  active,
+  origin,
+  onDelete,
+}: {
+  id: string;
+  name: string;
+  apiKey: string;
+  active: boolean;
+  origin: string;
+  onDelete: () => void;
+}) {
+  const update = useUpdateIntegrationSource(id);
+  return (
+    <div className="flex flex-col gap-1.5 rounded-md border p-3">
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-sm font-semibold">{name}</span>
+        <div className="flex items-center gap-3">
+          <ActiveToggle active={active} onToggle={(v) => update.mutate(v)} />
+          <Button type="button" variant="ghost" size="sm" onClick={onDelete}>
+            Delete
+          </Button>
+        </div>
+      </div>
+      <code className="bg-muted overflow-x-auto rounded px-2 py-1.5 text-xs">
+        POST {origin}/api/integrations/inbound/{apiKey}
+      </code>
+      {!active && (
+        <p className="text-muted-foreground text-xs">
+          Disabled — incoming requests are rejected until re-enabled.
+        </p>
+      )}
+    </div>
+  );
+}
 
 function SourcesSection() {
   const { data, isLoading } = useIntegrationSources();
@@ -93,25 +133,15 @@ function SourcesSection() {
             <p className="text-muted-foreground text-sm">No sources yet.</p>
           )}
           {data?.sources.map((source) => (
-            <div
+            <SourceRow
               key={source.id}
-              className="flex flex-col gap-1.5 rounded-md border p-3"
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-semibold">{source.name}</span>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleDelete(source.id, source.name)}
-                >
-                  Delete
-                </Button>
-              </div>
-              <code className="bg-muted overflow-x-auto rounded px-2 py-1.5 text-xs">
-                POST {origin}/api/integrations/inbound/{source.apiKey}
-              </code>
-            </div>
+              id={source.id}
+              name={source.name}
+              apiKey={source.apiKey}
+              active={source.active}
+              origin={origin}
+              onDelete={() => handleDelete(source.id, source.name)}
+            />
           ))}
         </CardContent>
       </Card>
@@ -143,16 +173,54 @@ function SourcesSection() {
   );
 }
 
-function WebhookToggle({ id, active }: { id: string; active: boolean }) {
-  const update = useUpdateWebhookSubscription(id);
+// Shared by both sections — pausing is the common action (Section 5.5:
+// most admins toggle a source off rather than reconfigure a webhook URL),
+// so both sources and subscriptions get the same on/off control.
+function ActiveToggle({
+  active,
+  onToggle,
+}: {
+  active: boolean;
+  onToggle: (active: boolean) => void;
+}) {
   return (
     <label className="flex items-center gap-2 text-sm">
       <Checkbox
         checked={active}
-        onCheckedChange={(checked) => update.mutate(checked === true)}
+        onCheckedChange={(checked) => onToggle(checked === true)}
       />
       Active
     </label>
+  );
+}
+
+function SubscriptionRow({
+  id,
+  url,
+  event,
+  active,
+  onDelete,
+}: {
+  id: string;
+  url: string;
+  event: (typeof WEBHOOK_EVENTS)[number];
+  active: boolean;
+  onDelete: () => void;
+}) {
+  const update = useUpdateWebhookSubscription(id);
+  return (
+    <div className="flex items-center gap-3 rounded-md border p-3">
+      <div className="min-w-0 flex-1">
+        <div className="truncate text-sm font-semibold">{url}</div>
+        <div className="text-muted-foreground text-xs">
+          {EVENT_LABEL[event]}
+        </div>
+      </div>
+      <ActiveToggle active={active} onToggle={(v) => update.mutate(v)} />
+      <Button type="button" variant="ghost" size="sm" onClick={onDelete}>
+        Delete
+      </Button>
+    </div>
   );
 }
 
@@ -206,26 +274,14 @@ function WebhooksSection() {
             <p className="text-muted-foreground text-sm">No webhooks yet.</p>
           )}
           {data?.subscriptions.map((sub) => (
-            <div
+            <SubscriptionRow
               key={sub.id}
-              className="flex items-center gap-3 rounded-md border p-3"
-            >
-              <div className="min-w-0 flex-1">
-                <div className="truncate text-sm font-semibold">{sub.url}</div>
-                <div className="text-muted-foreground text-xs">
-                  {EVENT_LABEL[sub.event]}
-                </div>
-              </div>
-              <WebhookToggle id={sub.id} active={sub.active} />
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => handleDelete(sub.id)}
-              >
-                Delete
-              </Button>
-            </div>
+              id={sub.id}
+              url={sub.url}
+              event={sub.event}
+              active={sub.active}
+              onDelete={() => handleDelete(sub.id)}
+            />
           ))}
         </CardContent>
       </Card>

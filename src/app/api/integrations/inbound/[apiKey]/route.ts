@@ -26,6 +26,9 @@ export async function POST(
   if (!source) {
     return NextResponse.json({ error: "Unknown source" }, { status: 404 });
   }
+  if (!source.active) {
+    return NextResponse.json({ error: "Source is disabled" }, { status: 403 });
+  }
 
   const body = await request.json().catch(() => null);
   const parsed = inboundTicketSchema.safeParse(body);
