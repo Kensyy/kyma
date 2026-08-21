@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
-import { SidebarNav } from "@/components/sidebar-nav";
+import { AppShell } from "@/components/app-shell";
 
 export default async function AppLayout({
   children,
@@ -17,9 +17,8 @@ export default async function AppLayout({
   const role = (session.user as { role?: string }).role ?? "STAFF";
 
   return (
-    <div className="bg-background flex min-h-screen w-full">
-      <SidebarNav role={role} userName={session.user.name} />
-      <div className="flex min-w-0 flex-1 flex-col">{children}</div>
-    </div>
+    <AppShell role={role} userName={session.user.name}>
+      {children}
+    </AppShell>
   );
 }

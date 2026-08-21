@@ -108,8 +108,8 @@ export default function TicketDetailPage({
   }
 
   return (
-    <div className="flex flex-1 overflow-hidden">
-      <div className="flex flex-1 flex-col overflow-auto p-7">
+    <div className="flex flex-1 flex-col overflow-auto md:flex-row md:overflow-hidden">
+      <div className="flex flex-1 flex-col p-7 md:overflow-auto">
         <div className="text-muted-foreground mb-5 flex items-center gap-2 text-sm">
           <Link href="/tickets" className="hover:text-foreground">
             Tickets
@@ -212,7 +212,7 @@ export default function TicketDetailPage({
         </div>
       </div>
 
-      <div className="w-72 min-w-72 overflow-auto border-l p-5.5">
+      <div className="border-t p-5.5 md:w-72 md:min-w-72 md:overflow-auto md:border-t-0 md:border-l">
         <div className="text-muted-foreground mb-3 text-xs font-bold tracking-wide uppercase">
           Properties
         </div>

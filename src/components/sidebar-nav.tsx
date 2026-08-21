@@ -115,9 +115,11 @@ const navItems: NavItem[] = [
 export function SidebarNav({
   role,
   userName,
+  onNavigate,
 }: {
   role: string;
   userName: string;
+  onNavigate?: () => void;
 }) {
   const pathname = usePathname();
   // Standalone, first-class nav entries — sits alongside Ticket/Asset, not
@@ -142,6 +144,7 @@ export function SidebarNav({
               <Link
                 key={item.href}
                 href={item.href}
+                onClick={onNavigate}
                 className={cn(
                   "text-sidebar-foreground/70 hover:bg-sidebar-accent/60 flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm font-medium transition-colors",
                   active && "bg-sidebar-accent text-sidebar-accent-foreground",
@@ -159,6 +162,7 @@ export function SidebarNav({
             <Link
               key={table.id}
               href={href}
+              onClick={onNavigate}
               className={cn(
                 "text-sidebar-foreground/70 hover:bg-sidebar-accent/60 flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm font-medium transition-colors",
                 active && "bg-sidebar-accent text-sidebar-accent-foreground",

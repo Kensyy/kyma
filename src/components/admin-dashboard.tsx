@@ -405,7 +405,7 @@ export function AdminDashboard() {
     return (
       <div className="flex flex-col gap-6 p-7">
         <Skeleton className="h-8 w-48" />
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => (
             <Skeleton key={i} className="h-24" />
           ))}
@@ -420,7 +420,7 @@ export function AdminDashboard() {
 
   return (
     <div className="flex flex-col gap-6 p-7">
-      <div className="flex items-start justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="font-heading text-xl font-semibold">
             Admin dashboard
@@ -430,7 +430,7 @@ export function AdminDashboard() {
             admin.
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={() => setCustomizing((v) => !v)}>
             {customizing ? "Close" : "Customize"}
           </Button>
@@ -465,14 +465,14 @@ export function AdminDashboard() {
         </p>
       )}
 
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {widgetIds.map((id) => {
           const Widget = WIDGET_COMPONENTS[id];
           if (!Widget) return null;
           return (
             <div
               key={id}
-              className={cn(WIDGET_WIDE[id] && "col-span-2 lg:col-span-2")}
+              className={cn(WIDGET_WIDE[id] && "sm:col-span-2 lg:col-span-2")}
             >
               <Widget />
             </div>

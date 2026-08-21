@@ -56,8 +56,8 @@ function SourceRow({
   const update = useUpdateIntegrationSource(id);
   return (
     <div className="flex flex-col gap-1.5 rounded-md border p-3">
-      <div className="flex items-center justify-between gap-3">
-        <span className="text-sm font-semibold">{name}</span>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <span className="min-w-0 truncate text-sm font-semibold">{name}</span>
         <div className="flex items-center gap-3">
           <ActiveToggle active={active} onToggle={(v) => update.mutate(v)} />
           <Button type="button" variant="ghost" size="sm" onClick={onDelete}>

@@ -45,7 +45,7 @@ export default function TicketsPage() {
 
   return (
     <div className="flex flex-1 flex-col">
-      <div className="flex items-center justify-between border-b px-7 py-4.5">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b px-7 py-4.5">
         <h1 className="font-heading text-xl font-semibold">Tickets</h1>
         <div className="flex items-center gap-2.5">
           <Input
@@ -60,7 +60,7 @@ export default function TicketsPage() {
         </div>
       </div>
 
-      <div className="flex items-center gap-5.5 border-b px-7">
+      <div className="flex items-center gap-5.5 overflow-x-auto border-b px-7">
         {(
           [
             ["all", "All tickets", allTickets.length],
@@ -72,7 +72,7 @@ export default function TicketsPage() {
             key={key}
             onClick={() => setTab(key)}
             className={cn(
-              "text-muted-foreground border-b-2 border-transparent py-3 text-sm font-semibold",
+              "text-muted-foreground border-b-2 border-transparent py-3 text-sm font-semibold whitespace-nowrap",
               tab === key && "border-primary text-primary",
             )}
           >
@@ -82,85 +82,87 @@ export default function TicketsPage() {
       </div>
 
       <div className="flex-1 overflow-auto p-7">
-        <div className="overflow-hidden rounded-lg border">
-          <div className="bg-muted/60 text-muted-foreground grid grid-cols-[96px_1fr_130px_110px_150px_130px_96px] px-4 py-2 text-[10.5px] font-bold tracking-wide uppercase">
-            <div>ID</div>
-            <div>Title</div>
-            <div>Status</div>
-            <div>Priority</div>
-            <div>Assignee</div>
-            <div>Category</div>
-            <div>Updated</div>
-          </div>
-
-          {isLoading &&
-            Array.from({ length: 5 }).map((_, i) => (
-              <div
-                key={i}
-                className="grid grid-cols-[96px_1fr_130px_110px_150px_130px_96px] items-center border-t px-4 py-2.5"
-              >
-                <Skeleton className="h-4 w-16" />
-                <Skeleton className="h-4 w-48" />
-                <Skeleton className="h-4 w-20" />
-                <Skeleton className="h-4 w-16" />
-                <Skeleton className="h-4 w-24" />
-                <Skeleton className="h-4 w-20" />
-                <Skeleton className="h-4 w-12" />
-              </div>
-            ))}
-
-          {!isLoading && tickets.length === 0 && (
-            <div className="text-muted-foreground p-10 text-center text-sm">
-              No tickets match this view.
+        <div className="overflow-x-auto rounded-lg border">
+          <div className="min-w-[860px]">
+            <div className="bg-muted/60 text-muted-foreground grid grid-cols-[96px_1fr_130px_110px_150px_130px_96px] px-4 py-2 text-[10.5px] font-bold tracking-wide uppercase">
+              <div>ID</div>
+              <div>Title</div>
+              <div>Status</div>
+              <div>Priority</div>
+              <div>Assignee</div>
+              <div>Category</div>
+              <div>Updated</div>
             </div>
-          )}
 
-          {tickets.map((ticket) => (
-            <Link
-              key={ticket.id}
-              href={`/tickets/${ticket.id}`}
-              className="hover:bg-muted/40 grid grid-cols-[96px_1fr_130px_110px_150px_130px_96px] items-center border-t px-4 py-2.5 text-sm"
-            >
-              <div className="text-muted-foreground font-mono text-xs">
-                {formatTicketNumber(prefix, ticket.ticketNumber)}
+            {isLoading &&
+              Array.from({ length: 5 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="grid grid-cols-[96px_1fr_130px_110px_150px_130px_96px] items-center border-t px-4 py-2.5"
+                >
+                  <Skeleton className="h-4 w-16" />
+                  <Skeleton className="h-4 w-48" />
+                  <Skeleton className="h-4 w-20" />
+                  <Skeleton className="h-4 w-16" />
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-4 w-20" />
+                  <Skeleton className="h-4 w-12" />
+                </div>
+              ))}
+
+            {!isLoading && tickets.length === 0 && (
+              <div className="text-muted-foreground p-10 text-center text-sm">
+                No tickets match this view.
               </div>
-              <div className="truncate pr-4 font-medium">
-                {ticket.title}
-                {ticket.source && (
-                  <span className="text-muted-foreground ml-1.5 text-[10.5px] font-normal">
-                    via {ticket.source.name}
-                  </span>
-                )}
-              </div>
-              <div>
-                <StatusBadge
-                  label={ticket.status.label}
-                  color={ticket.status.color}
-                />
-              </div>
-              <div>
-                <PriorityBadge priority={ticket.priority} />
-              </div>
-              <div>
-                {ticket.assignee ? (
-                  <div className="flex items-center gap-1.5">
-                    <UserAvatar name={ticket.assignee.name} />
-                    <span className="truncate">{ticket.assignee.name}</span>
-                  </div>
-                ) : (
-                  <span className="text-muted-foreground italic">
-                    Unassigned
-                  </span>
-                )}
-              </div>
-              <div className="text-muted-foreground truncate">
-                {ticket.category?.label ?? "—"}
-              </div>
-              <div className="text-muted-foreground text-xs">
-                {relativeTime(ticket.updatedAt)}
-              </div>
-            </Link>
-          ))}
+            )}
+
+            {tickets.map((ticket) => (
+              <Link
+                key={ticket.id}
+                href={`/tickets/${ticket.id}`}
+                className="hover:bg-muted/40 grid grid-cols-[96px_1fr_130px_110px_150px_130px_96px] items-center border-t px-4 py-2.5 text-sm"
+              >
+                <div className="text-muted-foreground font-mono text-xs">
+                  {formatTicketNumber(prefix, ticket.ticketNumber)}
+                </div>
+                <div className="truncate pr-4 font-medium">
+                  {ticket.title}
+                  {ticket.source && (
+                    <span className="text-muted-foreground ml-1.5 text-[10.5px] font-normal">
+                      via {ticket.source.name}
+                    </span>
+                  )}
+                </div>
+                <div>
+                  <StatusBadge
+                    label={ticket.status.label}
+                    color={ticket.status.color}
+                  />
+                </div>
+                <div>
+                  <PriorityBadge priority={ticket.priority} />
+                </div>
+                <div>
+                  {ticket.assignee ? (
+                    <div className="flex items-center gap-1.5">
+                      <UserAvatar name={ticket.assignee.name} />
+                      <span className="truncate">{ticket.assignee.name}</span>
+                    </div>
+                  ) : (
+                    <span className="text-muted-foreground italic">
+                      Unassigned
+                    </span>
+                  )}
+                </div>
+                <div className="text-muted-foreground truncate">
+                  {ticket.category?.label ?? "—"}
+                </div>
+                <div className="text-muted-foreground text-xs">
+                  {relativeTime(ticket.updatedAt)}
+                </div>
+              </Link>
+            ))}
+          </div>
         </div>
       </div>
     </div>
