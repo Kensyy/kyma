@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin, requireSession } from "@/lib/api-auth";
+import { requireAdmin, requireWriteSession } from "@/lib/api-auth";
 
 export async function DELETE(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const session = await requireSession();
+  const session = await requireWriteSession();
   if ("error" in session) return session.error;
   const forbidden = requireAdmin(session.user);
   if (forbidden) return forbidden;

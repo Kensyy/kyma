@@ -20,6 +20,11 @@ export const auth = betterAuth({
         type: "string",
         required: false,
       },
+      isDemo: {
+        type: "boolean",
+        defaultValue: false,
+        input: false,
+      },
     },
   },
 });

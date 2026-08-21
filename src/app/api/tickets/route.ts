@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
-import { requireSession } from "@/lib/api-auth";
+import { requireSession, requireWriteSession } from "@/lib/api-auth";
 import { createTicketSchema } from "@/lib/validations/ticket";
 import { computeTicketSlaDueAt } from "@/lib/sla-policy";
 import { ticketListInclude } from "@/lib/types/ticket";
@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const session = await requireSession();
+  const session = await requireWriteSession();
   if ("error" in session) return session.error;
 
   const body = await request.json();

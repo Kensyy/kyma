@@ -29,6 +29,7 @@ type SignInValues = z.infer<typeof signInSchema>;
 export default function SignInPage() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDemoLoading, setIsDemoLoading] = useState(false);
 
   const {
     register,
@@ -55,6 +56,28 @@ export default function SignInPage() {
     router.refresh();
   }
 
+  // One click, no credentials to type or read from a README — the whole
+  // point (Section 10) is that a recruiter lands here and can be inside the
+  // app immediately. Every mutation this account attempts is rejected
+  // server-side by requireWriteSession(), so nothing it does touches the
+  // shared seed data other visitors see.
+  async function handleDemo() {
+    setIsDemoLoading(true);
+    const { error } = await signIn.email({
+      email: "demo@kyma.local",
+      password: "kyma-demo-password",
+    });
+    setIsDemoLoading(false);
+
+    if (error) {
+      toast.error("Could not start the demo. Please try again.");
+      return;
+    }
+
+    router.push("/dashboard");
+    router.refresh();
+  }
+
   return (
     <div className="bg-background flex min-h-screen items-center justify-center px-4">
       <Card className="w-full max-w-sm">
@@ -70,7 +93,27 @@ export default function SignInPage() {
             <CardDescription>Internal IT operations platform</CardDescription>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="flex flex-col gap-5">
+          <div className="flex flex-col gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={isDemoLoading}
+              onClick={handleDemo}
+            >
+              {isDemoLoading ? "Loading demo…" : "View live demo"}
+            </Button>
+            <p className="text-muted-foreground text-center text-xs">
+              No signup — one click into a read-only Admin view.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="bg-border h-px flex-1" />
+            <span className="text-muted-foreground text-xs">or sign in</span>
+            <div className="bg-border h-px flex-1" />
+          </div>
+
           <form
             className="flex flex-col gap-4"
             onSubmit={handleSubmit(onSubmit)}

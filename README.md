@@ -18,13 +18,20 @@ pnpm db:migrate         # applies the schema and seeds lookup data + an admin us
 pnpm dev
 ```
 
-The seed script creates three accounts for local development (all share one password):
+The seed script creates four accounts for local development:
 
 ```
-admin@kyma.local / kyma-dev-password   (Admin)
-priya@kyma.local / kyma-dev-password   (Staff)
-sam@kyma.local   / kyma-dev-password   (Staff)
+admin@kyma.local / kyma-dev-password    (Admin)
+priya@kyma.local / kyma-dev-password    (Staff)
+sam@kyma.local   / kyma-dev-password    (Staff)
+demo@kyma.local  / kyma-demo-password   (Admin, read-only)
 ```
+
+The sign-in page has a "View live demo" button that logs into the `demo@kyma.local`
+account with one click — no credentials to type. That account can browse every
+screen but every mutating request is rejected server-side (`requireWriteSession()`
+in `src/lib/api-auth.ts`), so it's safe to link publicly without the shared seed
+data getting edited or deleted.
 
 ## Deploying
 

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireSession } from "@/lib/api-auth";
+import { requireSession, requireWriteSession } from "@/lib/api-auth";
 import { updateTicketSchema } from "@/lib/validations/ticket";
 import { computeTicketSlaDueAt } from "@/lib/sla-policy";
 import { ticketDetailInclude } from "@/lib/types/ticket";
@@ -62,7 +62,7 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const session = await requireSession();
+  const session = await requireWriteSession();
   if ("error" in session) return session.error;
 
   const { id } = await params;

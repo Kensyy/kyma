@@ -21,6 +21,10 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   role          Role      @default(STAFF)
+  // Flags the seeded public-demo account (Section 10) — requireWriteSession()
+  // checks this on every mutating API route so recruiters/visitors can click
+  // through the whole app without ever changing real seed data.
+  isDemo        Boolean   @default(false)
   branchId      String?
   branch        Branch?   @relation(fields: [branchId], references: [id])
   sessions      Session[]

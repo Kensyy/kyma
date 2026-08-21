@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireSession } from "@/lib/api-auth";
+import { requireWriteSession } from "@/lib/api-auth";
 import { createCommentSchema } from "@/lib/validations/ticket";
 import { logActivity } from "@/lib/activity-log";
 import { notifyMany } from "@/lib/notify";
@@ -9,7 +9,7 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const session = await requireSession();
+  const session = await requireWriteSession();
   if ("error" in session) return session.error;
 
   const { id } = await params;

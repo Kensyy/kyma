@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin, requireSession } from "@/lib/api-auth";
+import {
+  requireAdmin,
+  requireSession,
+  requireWriteSession,
+} from "@/lib/api-auth";
 import { createCustomEntityDefinitionSchema } from "@/lib/validations/custom-entity";
 import { customEntityDefinitionWithFieldsInclude } from "@/lib/types/custom-entity";
 import { slugify, uniqueSlug } from "@/lib/slug";
@@ -18,7 +22,7 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-  const session = await requireSession();
+  const session = await requireWriteSession();
   if ("error" in session) return session.error;
   const forbidden = requireAdmin(session.user);
   if (forbidden) return forbidden;

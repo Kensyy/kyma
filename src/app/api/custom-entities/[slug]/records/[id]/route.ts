@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireSession } from "@/lib/api-auth";
+import { requireSession, requireWriteSession } from "@/lib/api-auth";
 import { updateCustomEntityRecordSchema } from "@/lib/validations/custom-entity";
 import { customEntityRecordListInclude } from "@/lib/types/custom-entity";
 import {
@@ -57,7 +57,7 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ slug: string; id: string }> },
 ) {
-  const session = await requireSession();
+  const session = await requireWriteSession();
   if ("error" in session) return session.error;
 
   const { slug, id } = await params;
@@ -117,7 +117,7 @@ export async function DELETE(
   _request: NextRequest,
   { params }: { params: Promise<{ slug: string; id: string }> },
 ) {
-  const session = await requireSession();
+  const session = await requireWriteSession();
   if ("error" in session) return session.error;
 
   const { slug, id } = await params;

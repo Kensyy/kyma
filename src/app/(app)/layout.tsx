@@ -15,9 +15,10 @@ export default async function AppLayout({
   }
 
   const role = (session.user as { role?: string }).role ?? "STAFF";
+  const isDemo = (session.user as { isDemo?: boolean }).isDemo ?? false;
 
   return (
-    <AppShell role={role} userName={session.user.name}>
+    <AppShell role={role} userName={session.user.name} isDemo={isDemo}>
       {children}
     </AppShell>
   );

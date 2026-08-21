@@ -1,3 +1,5 @@
+import { toast } from "sonner";
+
 export class ApiError extends Error {
   status: number;
   /** The raw `error` value from the response body — a string for simple
@@ -33,6 +35,11 @@ export async function apiFetch<T>(
   if (!response.ok) {
     const body = await response.json().catch(() => null);
     const error = body?.error;
+    // One central place to surface the demo-mode block, rather than relying
+    // on every mutation's own catch block to inspect and forward it.
+    if (body?.code === "DEMO_READ_ONLY") {
+      toast.error("This is a read-only demo — changes aren't saved.");
+    }
     throw new ApiError(
       summarize(error) ?? response.statusText,
       response.status,

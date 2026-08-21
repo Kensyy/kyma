@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireSession } from "@/lib/api-auth";
+import { requireSession, requireWriteSession } from "@/lib/api-auth";
 import { updateDashboardConfigSchema } from "@/lib/validations/dashboard-config";
 import {
   DEFAULT_WIDGET_IDS,
@@ -25,7 +25,7 @@ export async function GET() {
 }
 
 export async function PATCH(request: NextRequest) {
-  const session = await requireSession();
+  const session = await requireWriteSession();
   if ("error" in session) return session.error;
 
   const body = await request.json();

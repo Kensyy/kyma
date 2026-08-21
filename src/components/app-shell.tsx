@@ -12,10 +12,12 @@ import { cn } from "@/lib/utils";
 export function AppShell({
   role,
   userName,
+  isDemo,
   children,
 }: {
   role: string;
   userName: string;
+  isDemo: boolean;
   children: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
@@ -68,6 +70,11 @@ export function AppShell({
             Kyma
           </span>
         </div>
+        {isDemo && (
+          <div className="bg-warning/15 text-warning border-warning/30 border-b px-4 py-1.5 text-center text-xs font-medium">
+            Viewing a read-only demo — nothing you do here is saved.
+          </div>
+        )}
         {children}
       </div>
     </div>

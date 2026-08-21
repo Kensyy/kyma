@@ -96,6 +96,8 @@ async function main() {
     email: string,
     name: string,
     role: "ADMIN" | "STAFF",
+    password: string,
+    isDemo = false,
   ) {
     const existing = await prisma.user.findUnique({
       where: { email },
@@ -108,24 +110,34 @@ async function main() {
       await prisma.user.delete({ where: { id: existing.id } });
     }
     if (!existing || existing.accounts.length === 0) {
-      await auth.api.signUpEmail({
-        body: { email, password: "kyma-dev-password", name },
-      });
-      await prisma.user.update({
-        where: { email },
-        data: { role, branchId: branch.id },
-      });
-      console.log(
-        `Seeded ${role.toLowerCase()} user: ${email} / kyma-dev-password`,
-      );
+      await auth.api.signUpEmail({ body: { email, password, name } });
+      console.log(`Seeded ${role.toLowerCase()} user: ${email} / ${password}`);
     } else {
       console.log(`User already exists: ${email}`);
     }
+    // Runs every seed, not just on first creation, so re-running the seed
+    // after this field was added (or after any role/branch change) still
+    // converges existing rows to the right values.
+    await prisma.user.update({
+      where: { email },
+      data: { role, branchId: branch.id, isDemo },
+    });
   }
 
-  await seedUser("admin@kyma.local", "Admin", "ADMIN");
-  await seedUser("priya@kyma.local", "Priya N.", "STAFF");
-  await seedUser("sam@kyma.local", "Sam O.", "STAFF");
+  await seedUser("admin@kyma.local", "Admin", "ADMIN", "kyma-dev-password");
+  await seedUser("priya@kyma.local", "Priya N.", "STAFF", "kyma-dev-password");
+  await seedUser("sam@kyma.local", "Sam O.", "STAFF", "kyma-dev-password");
+  // Public-demo account (Section 10) — kept separate from admin@kyma.local
+  // above so the real dev/admin login stays unrestricted for local testing.
+  // requireWriteSession() blocks every mutation for this account; recruiters
+  // reach it with one click from the sign-in page, no credentials to type.
+  await seedUser(
+    "demo@kyma.local",
+    "Demo Viewer",
+    "ADMIN",
+    "kyma-demo-password",
+    true,
+  );
 
   console.log("Seed complete.");
 }
