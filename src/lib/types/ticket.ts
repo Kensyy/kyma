@@ -5,6 +5,7 @@ export const ticketListInclude = {
   category: true,
   assignee: { select: { id: true, name: true } },
   createdBy: { select: { id: true, name: true } },
+  source: { select: { id: true, name: true } },
 } satisfies Prisma.TicketInclude;
 
 export type TicketListItem = Prisma.TicketGetPayload<{
@@ -18,6 +19,7 @@ export const ticketDetailInclude = {
   assignee: { select: { id: true, name: true } },
   createdBy: { select: { id: true, name: true } },
   asset: { select: { id: true, name: true } },
+  source: { select: { id: true, name: true } },
   comments: {
     include: { author: { select: { id: true, name: true } } },
     orderBy: { createdAt: "asc" as const },

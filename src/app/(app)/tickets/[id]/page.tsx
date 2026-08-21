@@ -345,6 +345,12 @@ export default function TicketDetailPage({
 
         <div className="text-muted-foreground flex flex-col gap-1 border-t pt-3 text-[11.5px]">
           <span>Requester: {ticket.createdBy.name}</span>
+          {ticket.source && (
+            <span>
+              Received via {ticket.source.name}
+              {ticket.externalRef && ` (${ticket.externalRef})`}
+            </span>
+          )}
           {ticket.branch && <span>Branch: {ticket.branch.name}</span>}
           {ticket.slaDueAt && (
             <span>SLA due {relativeTime(ticket.slaDueAt)}</span>

@@ -10,6 +10,7 @@ import {
   validateCustomFields,
 } from "@/lib/custom-field-sync";
 import { logActivity } from "@/lib/activity-log";
+import { dispatchWebhook } from "@/lib/webhooks";
 
 export async function GET(request: NextRequest) {
   const session = await requireSession();
@@ -115,6 +116,12 @@ export async function POST(request: NextRequest) {
     entityId: ticket.id,
     actorId: session.user.id,
     action: "TICKET_CREATED",
+  });
+
+  await dispatchWebhook("TICKET_CREATED", {
+    ticketId: ticket.id,
+    title: ticket.title,
+    priority: ticket.priority,
   });
 
   return NextResponse.json({ ticket }, { status: 201 });

@@ -218,17 +218,25 @@ model Ticket {
   updatedAt    DateTime  @updatedAt
 
   statusId    String
-  status      Status    @relation(fields: [statusId], references: [id])
+  status      Status             @relation(fields: [statusId], references: [id])
   categoryId  String?
-  category    Category? @relation(fields: [categoryId], references: [id])
+  category    Category?          @relation(fields: [categoryId], references: [id])
   branchId    String?
-  branch      Branch?   @relation(fields: [branchId], references: [id])
+  branch      Branch?            @relation(fields: [branchId], references: [id])
   assigneeId  String?
-  assignee    User?     @relation("TicketAssignee", fields: [assigneeId], references: [id])
+  assignee    User?              @relation("TicketAssignee", fields: [assigneeId], references: [id])
   createdById String
-  createdBy   User      @relation("TicketCreatedBy", fields: [createdById], references: [id])
+  createdBy   User               @relation("TicketCreatedBy", fields: [createdById], references: [id])
   assetId     String?
-  asset       Asset?    @relation(fields: [assetId], references: [id])
+  asset       Asset?             @relation(fields: [assetId], references: [id])
+  // Set when this ticket was auto-created by an inbound integration webhook
+  // (Section 5.5) rather than opened natively — null for everything else.
+  sourceId    String?
+  source      IntegrationSource? @relation(fields: [sourceId], references: [id])
+  // The source system's own id/reference for this ticket (e.g. a
+  // TeamDynamix ticket number), so staff can trace back to where it
+  // originated. Free text — format varies per source.
+  externalRef String?
 
   comments TicketComment[]
 
@@ -457,4 +465,41 @@ model DashboardConfig {
   layoutJson Json
 
   @@map("dashboard_config")
+}
+
+// Section 5.5 — Kyma as the place tickets converge from other tools (a
+// TeamDynamix flow, a firewall/SIEM alert, ...) rather than one more tool
+// staff have to check separately. An admin names a source, gets back a
+// unique inbound webhook URL keyed on `apiKey`, and hands that URL to the
+// external system — no per-vendor integration code, same "definition, not
+// code" pattern as the rest of the app.
+model IntegrationSource {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  apiKey    String   @unique @default(cuid())
+  createdAt DateTime @default(now())
+
+  tickets Ticket[]
+
+  @@map("integration_source")
+}
+
+enum WebhookEvent {
+  TICKET_CREATED
+  TICKET_STATUS_CHANGED
+  TICKET_ASSIGNED
+}
+
+// The outbound half — an admin points a URL at one of Kyma's own events so
+// another tool (Slack, TeamDynamix, a paging system) can react without
+// polling. Best-effort delivery only (Section 10) — no retry queue, since
+// that needs infrastructure this deployment doesn't have.
+model WebhookSubscription {
+  id        String       @id @default(cuid())
+  url       String
+  event     WebhookEvent
+  active    Boolean      @default(true)
+  createdAt DateTime     @default(now())
+
+  @@map("webhook_subscription")
 }

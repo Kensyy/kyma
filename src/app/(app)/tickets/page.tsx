@@ -124,7 +124,14 @@ export default function TicketsPage() {
               <div className="text-muted-foreground font-mono text-xs">
                 {formatTicketNumber(prefix, ticket.ticketNumber)}
               </div>
-              <div className="truncate pr-4 font-medium">{ticket.title}</div>
+              <div className="truncate pr-4 font-medium">
+                {ticket.title}
+                {ticket.source && (
+                  <span className="text-muted-foreground ml-1.5 text-[10.5px] font-normal">
+                    via {ticket.source.name}
+                  </span>
+                )}
+              </div>
               <div>
                 <StatusBadge
                   label={ticket.status.label}

@@ -443,6 +443,9 @@ export function AdminDashboard() {
           <Button asChild variant="outline">
             <Link href="/admin/activity">Activity log</Link>
           </Button>
+          <Button asChild variant="outline">
+            <Link href="/admin/integrations">Integrations</Link>
+          </Button>
         </div>
       </div>
 

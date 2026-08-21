@@ -10,6 +10,7 @@ import {
 } from "@/lib/custom-field-sync";
 import { logActivity } from "@/lib/activity-log";
 import { notify } from "@/lib/notify";
+import { dispatchWebhook } from "@/lib/webhooks";
 
 async function loadCustomFields(ticketId: string) {
   const [definitions, values] = await Promise.all([
@@ -119,6 +120,11 @@ export async function PATCH(
       action: "TICKET_STATUS_CHANGED",
       metadata: { from: existing.statusId, to: statusId },
     });
+    await dispatchWebhook("TICKET_STATUS_CHANGED", {
+      ticketId: id,
+      title: ticket.title,
+      statusId,
+    });
   }
 
   if ("assigneeId" in rest && rest.assigneeId !== existing.assigneeId) {
@@ -128,6 +134,11 @@ export async function PATCH(
       actorId: session.user.id,
       action: "TICKET_ASSIGNED",
       metadata: { assigneeId: rest.assigneeId },
+    });
+    await dispatchWebhook("TICKET_ASSIGNED", {
+      ticketId: id,
+      title: ticket.title,
+      assigneeId: rest.assigneeId,
     });
 
     if (rest.assigneeId && rest.assigneeId !== session.user.id) {
