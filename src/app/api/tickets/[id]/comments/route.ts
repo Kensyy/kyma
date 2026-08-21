@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/api-auth";
 import { createCommentSchema } from "@/lib/validations/ticket";
+import { logActivity } from "@/lib/activity-log";
+import { notifyMany } from "@/lib/notify";
 
 export async function POST(
   request: NextRequest,
@@ -40,6 +42,26 @@ export async function POST(
     where: { id },
     data: { updatedAt: new Date() },
   });
+
+  await logActivity({
+    entityType: "TICKET",
+    entityId: id,
+    actorId: session.user.id,
+    action: "TICKET_COMMENT_ADDED",
+    metadata: { isInternal: parsed.data.isInternal },
+  });
+
+  // An internal note is staff-only, so the ticket's (possibly End User)
+  // creator only gets notified about public replies — the assignee sees
+  // both, since they're staff either way.
+  const recipients = parsed.data.isInternal
+    ? [ticket.assigneeId]
+    : [ticket.createdById, ticket.assigneeId];
+  await notifyMany(
+    recipients.filter((userId) => userId !== session.user.id),
+    `New ${parsed.data.isInternal ? "internal note" : "reply"} on "${ticket.title}"`,
+    { entityType: "TICKET", entityId: id },
+  );
 
   return NextResponse.json({ comment }, { status: 201 });
 }

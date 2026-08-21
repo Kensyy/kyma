@@ -14,6 +14,7 @@ import {
   useTicket,
   useUpdateTicket,
 } from "@/hooks/use-tickets";
+import { useAssets } from "@/hooks/use-assets";
 import { StatusBadge } from "@/components/status-badge";
 import { PriorityBadge } from "@/components/priority-badge";
 import { UserAvatar } from "@/components/user-avatar";
@@ -43,6 +44,7 @@ export default function TicketDetailPage({
   const { data: statusData } = useStatuses("TICKET");
   const { data: categoryData } = useCategories("TICKET");
   const { data: userData } = useAssignableUsers();
+  const { data: assetData } = useAssets({});
   const updateTicket = useUpdateTicket(id);
   const addComment = useAddComment(id);
 
@@ -295,6 +297,27 @@ export default function TicketDetailPage({
               {categoryData?.categories.map((c) => (
                 <SelectItem key={c.id} value={c.id}>
                   {c.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </PropertyField>
+
+        <PropertyField label="Asset">
+          <Select
+            value={ticket.assetId ?? "none"}
+            onValueChange={(assetId) =>
+              handleUpdate({ assetId: assetId === "none" ? null : assetId })
+            }
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">None</SelectItem>
+              {assetData?.assets.map((a) => (
+                <SelectItem key={a.id} value={a.id}>
+                  {a.name}
                 </SelectItem>
               ))}
             </SelectContent>

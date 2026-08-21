@@ -19,6 +19,15 @@ export const assetDetailInclude = {
     include: { user: { select: { id: true, name: true } } },
     orderBy: { timestamp: "desc" as const },
   },
+  tickets: {
+    select: {
+      id: true,
+      ticketNumber: true,
+      title: true,
+      status: { select: { label: true, color: true } },
+    },
+    orderBy: { updatedAt: "desc" as const },
+  },
 } satisfies Prisma.AssetInclude;
 
 export type AssetDetail = Prisma.AssetGetPayload<{

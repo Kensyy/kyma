@@ -440,6 +440,9 @@ export function AdminDashboard() {
           <Button asChild variant="outline">
             <Link href="/admin/custom-entities">Custom tables</Link>
           </Button>
+          <Button asChild variant="outline">
+            <Link href="/admin/activity">Activity log</Link>
+          </Button>
         </div>
       </div>
 

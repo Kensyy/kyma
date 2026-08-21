@@ -7,6 +7,8 @@ import {
   persistCustomFieldValues,
   validateCustomFields,
 } from "@/lib/custom-field-sync";
+import { logActivity } from "@/lib/activity-log";
+import { notify } from "@/lib/notify";
 
 async function loadCustomFields(assetId: string) {
   const [definitions, values] = await Promise.all([
@@ -129,6 +131,29 @@ export async function PATCH(
   });
 
   await persistCustomFieldValues(id, customFields, fieldsResult.definitions);
+
+  for (const event of historyEvents) {
+    await logActivity({
+      entityType: "ASSET",
+      entityId: id,
+      actorId: session.user.id,
+      action: `ASSET_${event.eventType}`,
+    });
+  }
+
+  if (
+    "ownerId" in parsed.data &&
+    parsed.data.ownerId &&
+    parsed.data.ownerId !== existing.ownerId &&
+    parsed.data.ownerId !== session.user.id
+  ) {
+    await notify({
+      userId: parsed.data.ownerId,
+      message: `"${asset.name}" was checked out to you`,
+      entityType: "ASSET",
+      entityId: id,
+    });
+  }
 
   return NextResponse.json({ asset });
 }

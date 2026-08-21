@@ -8,6 +8,8 @@ import {
   persistCustomFieldValues,
   validateCustomFields,
 } from "@/lib/custom-field-sync";
+import { logActivity } from "@/lib/activity-log";
+import { notify } from "@/lib/notify";
 
 async function loadCustomFields(ticketId: string) {
   const [definitions, values] = await Promise.all([
@@ -108,6 +110,35 @@ export async function PATCH(
   });
 
   await persistCustomFieldValues(id, customFields, fieldsResult.definitions);
+
+  if (statusId && statusId !== existing.statusId) {
+    await logActivity({
+      entityType: "TICKET",
+      entityId: id,
+      actorId: session.user.id,
+      action: "TICKET_STATUS_CHANGED",
+      metadata: { from: existing.statusId, to: statusId },
+    });
+  }
+
+  if ("assigneeId" in rest && rest.assigneeId !== existing.assigneeId) {
+    await logActivity({
+      entityType: "TICKET",
+      entityId: id,
+      actorId: session.user.id,
+      action: "TICKET_ASSIGNED",
+      metadata: { assigneeId: rest.assigneeId },
+    });
+
+    if (rest.assigneeId && rest.assigneeId !== session.user.id) {
+      await notify({
+        userId: rest.assigneeId,
+        message: `You were assigned to "${ticket.title}"`,
+        entityType: "TICKET",
+        entityId: id,
+      });
+    }
+  }
 
   return NextResponse.json({ ticket });
 }

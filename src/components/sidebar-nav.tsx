@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { useCustomEntityDefinitions } from "@/hooks/use-custom-entities";
 import { WaveMark } from "@/components/wave-mark";
 import { UserMenu } from "@/components/user-menu";
+import { NotificationBell } from "@/components/notification-bell";
 
 const TABLE_ICON = (
   <svg
@@ -169,8 +170,11 @@ export function SidebarNav({
           );
         })}
       </nav>
-      <div className="mt-auto border-t pt-3">
-        <UserMenu name={userName} role={role} />
+      <div className="mt-auto flex items-center gap-1.5 border-t pt-3">
+        <div className="min-w-0 flex-1">
+          <UserMenu name={userName} role={role} />
+        </div>
+        <NotificationBell />
       </div>
     </div>
   );

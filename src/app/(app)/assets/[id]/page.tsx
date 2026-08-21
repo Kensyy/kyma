@@ -5,7 +5,12 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { relativeTime } from "@/lib/relative-time";
 import { useAsset, useAssetTypes, useUpdateAsset } from "@/hooks/use-assets";
-import { useAssignableUsers, useStatuses } from "@/hooks/use-tickets";
+import {
+  useAssignableUsers,
+  useStatuses,
+  useTicketPrefix,
+} from "@/hooks/use-tickets";
+import { formatTicketNumber } from "@/lib/ticket-number";
 import { StatusBadge } from "@/components/status-badge";
 import { AssetTypeBadge } from "@/components/asset-type-badge";
 import { DynamicFieldInput } from "@/components/dynamic-field-input";
@@ -36,6 +41,7 @@ export default function AssetDetailPage({
   const { data: statusData } = useStatuses("ASSET");
   const { data: typeData } = useAssetTypes();
   const { data: userData } = useAssignableUsers();
+  const { data: prefixData } = useTicketPrefix();
   const updateAsset = useUpdateAsset(id);
 
   // Same debounced-draft pattern as the ticket detail page — typing stays
@@ -123,6 +129,38 @@ export default function AssetDetailPage({
                 </div>
               </div>
             </div>
+          ))}
+        </div>
+
+        <div className="mt-6 flex flex-col gap-3 border-t pt-5">
+          <div className="text-muted-foreground text-xs font-bold tracking-wide uppercase">
+            Related tickets
+          </div>
+
+          {asset.tickets.length === 0 && (
+            <p className="text-muted-foreground text-sm">
+              No tickets link to this asset yet.
+            </p>
+          )}
+
+          {asset.tickets.map((ticket) => (
+            <Link
+              key={ticket.id}
+              href={`/tickets/${ticket.id}`}
+              className="hover:bg-muted/40 flex items-center gap-2.5 rounded-md border p-2.5 text-sm"
+            >
+              <span className="text-muted-foreground font-mono text-xs">
+                {formatTicketNumber(
+                  prefixData?.ticketPrefix ?? "KYM",
+                  ticket.ticketNumber,
+                )}
+              </span>
+              <span className="flex-1 truncate">{ticket.title}</span>
+              <StatusBadge
+                label={ticket.status.label}
+                color={ticket.status.color}
+              />
+            </Link>
           ))}
         </div>
       </div>

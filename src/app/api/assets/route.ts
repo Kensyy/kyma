@@ -8,6 +8,7 @@ import {
   persistCustomFieldValues,
   validateCustomFields,
 } from "@/lib/custom-field-sync";
+import { logActivity } from "@/lib/activity-log";
 
 export async function GET(request: NextRequest) {
   const session = await requireSession();
@@ -95,6 +96,13 @@ export async function POST(request: NextRequest) {
     customFields,
     fieldsResult.definitions,
   );
+
+  await logActivity({
+    entityType: "ASSET",
+    entityId: asset.id,
+    actorId: session.user.id,
+    action: "ASSET_CREATED",
+  });
 
   return NextResponse.json({ asset }, { status: 201 });
 }
