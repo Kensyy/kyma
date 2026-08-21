@@ -12,6 +12,9 @@ export type CreateCustomEntityDefinitionInput = z.infer<
 export const updateCustomEntityDefinitionSchema = z.object({
   name: z.string().trim().min(1).max(100).optional(),
   order: z.number().int().optional(),
+  // Which of this table's own fields represents a record elsewhere (Section
+  // 5.4) — null clears it back to the first-field-by-order fallback.
+  displayFieldId: z.string().nullable().optional(),
 });
 
 export type UpdateCustomEntityDefinitionInput = z.infer<
@@ -26,7 +29,12 @@ export const customEntityFieldTypeEnum = z.enum([
   "BOOLEAN",
   "RELATION",
 ]);
-export const relationTargetEnum = z.enum(["TICKET", "ASSET", "USER"]);
+export const relationTargetEnum = z.enum([
+  "TICKET",
+  "ASSET",
+  "USER",
+  "CUSTOM_ENTITY",
+]);
 
 export const createCustomEntityFieldDefinitionSchema = z
   .object({
@@ -34,6 +42,9 @@ export const createCustomEntityFieldDefinitionSchema = z
     fieldType: customEntityFieldTypeEnum,
     options: z.array(z.string().trim().min(1)).max(50).optional(),
     relationTarget: relationTargetEnum.optional(),
+    // Only set (and required) when relationTarget is CUSTOM_ENTITY — which
+    // other admin-defined table this field links to.
+    relationTargetEntityId: z.string().optional(),
     required: z.boolean(),
   })
   .refine(
@@ -46,7 +57,15 @@ export const createCustomEntityFieldDefinitionSchema = z
   .refine((data) => data.fieldType !== "RELATION" || !!data.relationTarget, {
     message: "Relation fields need a target entity.",
     path: ["relationTarget"],
-  });
+  })
+  .refine(
+    (data) =>
+      data.relationTarget !== "CUSTOM_ENTITY" || !!data.relationTargetEntityId,
+    {
+      message: "Pick which table this field links to.",
+      path: ["relationTargetEntityId"],
+    },
+  );
 
 export type CreateCustomEntityFieldDefinitionInput = z.infer<
   typeof createCustomEntityFieldDefinitionSchema

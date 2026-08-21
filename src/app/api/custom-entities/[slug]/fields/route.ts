@@ -29,7 +29,20 @@ export async function POST(
     );
   }
 
-  const { options, relationTarget, ...rest } = parsed.data;
+  const { options, relationTarget, relationTargetEntityId, ...rest } =
+    parsed.data;
+
+  if (relationTarget === "CUSTOM_ENTITY" && relationTargetEntityId) {
+    const target = await prisma.customEntityDefinition.findUnique({
+      where: { id: relationTargetEntityId },
+    });
+    if (!target) {
+      return NextResponse.json(
+        { error: "Target table not found" },
+        { status: 400 },
+      );
+    }
+  }
 
   const last = await prisma.customEntityFieldDefinition.findFirst({
     where: { entityDefinitionId: entityDefinition.id },
@@ -42,6 +55,8 @@ export async function POST(
       entityDefinitionId: entityDefinition.id,
       options: options ?? undefined,
       relationTarget,
+      relationTargetEntityId:
+        relationTarget === "CUSTOM_ENTITY" ? relationTargetEntityId : undefined,
       order: (last?.order ?? 0) + 1,
     },
   });

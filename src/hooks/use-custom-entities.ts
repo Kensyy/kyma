@@ -6,6 +6,7 @@ import { apiFetch } from "@/lib/api-client";
 import type {
   CustomEntityDefinitionWithFields,
   CustomEntityRecordListItem,
+  CustomEntityRecordWithLabels,
 } from "@/lib/types/custom-entity";
 import type {
   CreateCustomEntityDefinitionInput,
@@ -121,7 +122,7 @@ export function useCustomEntityRecords(slug: string) {
   return useQuery({
     queryKey: ["customEntityRecords", slug],
     queryFn: () =>
-      apiFetch<{ records: CustomEntityRecordListItem[] }>(
+      apiFetch<{ records: CustomEntityRecordWithLabels[] }>(
         `/api/custom-entities/${slug}/records`,
       ),
     enabled: !!slug,

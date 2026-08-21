@@ -17,3 +17,11 @@ export const customEntityRecordListInclude = {
 export type CustomEntityRecordListItem = Prisma.CustomEntityRecordGetPayload<{
   include: typeof customEntityRecordListInclude;
 }>;
+
+// What GET /api/custom-entities/[slug]/records actually returns — the base
+// record plus its own display label and, for any RELATION fields, the
+// resolved human label for each raw id (Section 5.4).
+export type CustomEntityRecordWithLabels = CustomEntityRecordListItem & {
+  label: string | null;
+  resolvedValues: Record<string, string | null>;
+};

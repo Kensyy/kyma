@@ -135,13 +135,15 @@ enum CustomEntityFieldType {
   RELATION
 }
 
-// What a RELATION field points at. v1 only links to built-in entities —
-// no custom-entity-to-custom-entity relations, to avoid self-referential
-// UI complexity before there's a real need for it (Section 5.4).
+// What a RELATION field points at. CUSTOM_ENTITY (added once a real need
+// showed up) lets a table relate to another admin-defined table — including
+// itself, e.g. an "Employees" table with a "Manager" field pointing back at
+// Employees. Section 5.4.
 enum RelationTargetType {
   TICKET
   ASSET
   USER
+  CUSTOM_ENTITY
 }
 
 model Branch {
@@ -374,26 +376,42 @@ model CustomEntityDefinition {
   order     Int
   createdAt DateTime @default(now())
 
-  fields  CustomEntityFieldDefinition[]
-  records CustomEntityRecord[]
+  // Which of this table's own fields represents a record when it's shown
+  // elsewhere (a relation picker in another table, this table's own detail
+  // header). Falls back to the first field by `order` when unset — set to
+  // SetNull so deleting that field doesn't break the table, it just falls
+  // back again.
+  displayFieldId String?                      @unique
+  displayField   CustomEntityFieldDefinition? @relation("DisplayField", fields: [displayFieldId], references: [id], onDelete: SetNull)
+
+  fields                 CustomEntityFieldDefinition[] @relation("EntityFields")
+  records                CustomEntityRecord[]
+  // Fields on OTHER tables whose RELATION points at this table — checked
+  // before allowing a delete (Section 9 rule: fail with a clear error
+  // rather than silently orphaning another table's field).
+  incomingRelationFields CustomEntityFieldDefinition[] @relation("RelationTargetEntity")
 
   @@map("custom_entity_definition")
 }
 
 model CustomEntityFieldDefinition {
-  id                 String                 @id @default(cuid())
-  entityDefinitionId String
-  entityDefinition   CustomEntityDefinition @relation(fields: [entityDefinitionId], references: [id], onDelete: Cascade)
-  name               String
-  fieldType          CustomEntityFieldType
-  options            Json?
-  // Only set when fieldType is RELATION — which built-in entity this field
-  // links a record to.
-  relationTarget     RelationTargetType?
-  required           Boolean                @default(false)
-  order              Int
+  id                     String                  @id @default(cuid())
+  entityDefinitionId     String
+  entityDefinition       CustomEntityDefinition  @relation("EntityFields", fields: [entityDefinitionId], references: [id], onDelete: Cascade)
+  name                   String
+  fieldType              CustomEntityFieldType
+  options                Json?
+  // Only set when fieldType is RELATION — which built-in entity (or, for
+  // CUSTOM_ENTITY, which other admin-defined table) this field links a
+  // record to.
+  relationTarget         RelationTargetType?
+  relationTargetEntityId String?
+  relationTargetEntity   CustomEntityDefinition? @relation("RelationTargetEntity", fields: [relationTargetEntityId], references: [id])
+  required               Boolean                 @default(false)
+  order                  Int
 
-  values CustomEntityFieldValue[]
+  values                    CustomEntityFieldValue[]
+  displayFieldForDefinition CustomEntityDefinition?  @relation("DisplayField")
 
   @@index([entityDefinitionId])
   @@map("custom_entity_field_definition")

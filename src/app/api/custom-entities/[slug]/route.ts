@@ -50,6 +50,18 @@ export async function PATCH(
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
+  if (parsed.data.displayFieldId) {
+    const field = await prisma.customEntityFieldDefinition.findUnique({
+      where: { id: parsed.data.displayFieldId },
+    });
+    if (!field || field.entityDefinitionId !== existing.id) {
+      return NextResponse.json(
+        { error: "Display field must belong to this table" },
+        { status: 400 },
+      );
+    }
+  }
+
   // Renaming doesn't reslug an existing table — the slug is its stable URL
   // (/tables/[slug]); changing it out from under bookmarks/links would be
   // more surprising than a display name that's drifted from the URL.
@@ -77,6 +89,25 @@ export async function DELETE(
   });
   if (!existing) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  // A field on another table can have a RELATION pointing at this one — a
+  // self-relation is fine (it disappears along with the table itself), but
+  // deleting out from under a different table would silently null out that
+  // field's relationTargetEntityId, so block it with a clear error instead.
+  const referencedBy = await prisma.customEntityFieldDefinition.count({
+    where: {
+      relationTargetEntityId: existing.id,
+      entityDefinitionId: { not: existing.id },
+    },
+  });
+  if (referencedBy > 0) {
+    return NextResponse.json(
+      {
+        error: `${referencedBy} field(s) on other tables link to this one — remove those fields first.`,
+      },
+      { status: 400 },
+    );
   }
 
   // Fields, records, and their values all cascade-delete via the schema

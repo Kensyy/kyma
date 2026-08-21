@@ -7,6 +7,7 @@ import {
   persistCustomEntityFieldValues,
   validateCustomEntityFields,
 } from "@/lib/custom-entity-sync";
+import { resolveRelationLabel } from "@/lib/custom-entity-relations";
 
 export async function GET(
   _request: NextRequest,
@@ -18,6 +19,7 @@ export async function GET(
   const { slug } = await params;
   const entityDefinition = await prisma.customEntityDefinition.findUnique({
     where: { slug },
+    include: { fields: { orderBy: { order: "asc" } } },
   });
   if (!entityDefinition) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -29,7 +31,51 @@ export async function GET(
     orderBy: { createdAt: "desc" },
   });
 
-  return NextResponse.json({ records });
+  const displayFieldId =
+    entityDefinition.displayFieldId ?? entityDefinition.fields[0]?.id ?? null;
+  const relationFields = entityDefinition.fields.filter(
+    (f) => f.fieldType === "RELATION" && f.relationTarget,
+  );
+
+  // Resolve every RELATION field's raw id into a human label, and this
+  // record's own display label (Section 5.4) — both reuse the same
+  // resolver, so a table showing up as a relation target elsewhere renders
+  // consistently with how it renders itself.
+  const recordsWithLabels = await Promise.all(
+    records.map(async (record) => {
+      const [label, resolvedEntries] = await Promise.all([
+        displayFieldId
+          ? Promise.resolve(
+              record.values.find((v) => v.fieldDefinitionId === displayFieldId)
+                ?.value ?? null,
+            )
+          : Promise.resolve(null),
+        Promise.all(
+          relationFields.map(async (field) => {
+            const raw = record.values.find(
+              (v) => v.fieldDefinitionId === field.id,
+            )?.value;
+            if (!raw || !field.relationTarget) return null;
+            const resolved = await resolveRelationLabel(
+              field.relationTarget,
+              raw,
+            );
+            return [field.id, resolved] as const;
+          }),
+        ),
+      ]);
+
+      const resolvedValues = Object.fromEntries(
+        resolvedEntries.filter(
+          (entry): entry is [string, string | null] => entry !== null,
+        ),
+      );
+
+      return { ...record, label, resolvedValues };
+    }),
+  );
+
+  return NextResponse.json({ records: recordsWithLabels });
 }
 
 export async function POST(

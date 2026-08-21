@@ -6,13 +6,6 @@ import {
   useCustomEntityDefinition,
   useCustomEntityRecords,
 } from "@/hooks/use-custom-entities";
-import {
-  useAssignableUsers,
-  useTicketPrefix,
-  useTickets,
-} from "@/hooks/use-tickets";
-import { useAssets } from "@/hooks/use-assets";
-import { formatTicketNumber } from "@/lib/ticket-number";
 import { relativeTime } from "@/lib/relative-time";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -25,30 +18,6 @@ export default function CustomEntityListPage({
   const { slug } = use(params);
   const { data: defData } = useCustomEntityDefinition(slug);
   const { data: recordsData, isLoading } = useCustomEntityRecords(slug);
-
-  // Always called (not conditional on this table having a RELATION field) —
-  // resolving relation values to a human label here keeps the auto-generated
-  // list view readable instead of showing raw ids.
-  const { data: ticketsData } = useTickets({});
-  const { data: prefixData } = useTicketPrefix();
-  const { data: assetsData } = useAssets({});
-  const { data: usersData } = useAssignableUsers();
-
-  function relationLabel(target: string | null | undefined, id: string) {
-    if (target === "TICKET") {
-      const t = ticketsData?.tickets.find((t) => t.id === id);
-      return t
-        ? `${formatTicketNumber(prefixData?.ticketPrefix ?? "KYM", t.ticketNumber)} — ${t.title}`
-        : id;
-    }
-    if (target === "ASSET") {
-      return assetsData?.assets.find((a) => a.id === id)?.name ?? id;
-    }
-    if (target === "USER") {
-      return usersData?.users.find((u) => u.id === id)?.name ?? id;
-    }
-    return id;
-  }
 
   const fields = defData?.definition.fields ?? [];
   const records = recordsData?.records ?? [];
@@ -63,7 +32,7 @@ export default function CustomEntityListPage({
     if (raw === null) return "—";
     if (def?.fieldType === "BOOLEAN") return raw === "true" ? "Yes" : "No";
     if (def?.fieldType === "RELATION")
-      return relationLabel(def.relationTarget, raw);
+      return record.resolvedValues[fieldId] ?? raw;
     return raw;
   }
 

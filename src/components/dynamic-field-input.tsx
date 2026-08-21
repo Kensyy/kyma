@@ -8,6 +8,10 @@ import {
   useTickets,
 } from "@/hooks/use-tickets";
 import { useAssets } from "@/hooks/use-assets";
+import {
+  useCustomEntityDefinitions,
+  useCustomEntityRecords,
+} from "@/hooks/use-custom-entities";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -26,6 +30,7 @@ type FieldDefinitionLike = {
   fieldType: string;
   options: unknown;
   relationTarget?: string | null;
+  relationTargetEntityId?: string | null;
 };
 
 function TicketRelationSelect({
@@ -95,6 +100,41 @@ function UserRelationSelect({
         {data?.users.map((u) => (
           <SelectItem key={u.id} value={u.id}>
             {u.name}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
+// Resolves the target table's slug from its id via the already-cached full
+// list (fetched globally for the sidebar nav), then lists that table's
+// records using each one's admin-chosen display label (Section 5.4) — same
+// resolution the list/detail views use, so a relation reads the same
+// everywhere.
+function CustomEntityRelationSelect({
+  targetEntityId,
+  value,
+  onChange,
+}: {
+  targetEntityId: string | null | undefined;
+  value: string | null;
+  onChange: (value: string | null) => void;
+}) {
+  const { data: tables } = useCustomEntityDefinitions();
+  const targetSlug = tables?.definitions.find(
+    (t) => t.id === targetEntityId,
+  )?.slug;
+  const { data } = useCustomEntityRecords(targetSlug ?? "");
+  return (
+    <Select value={value ?? ""} onValueChange={(v) => onChange(v || null)}>
+      <SelectTrigger className="w-full">
+        <SelectValue placeholder="Select a record…" />
+      </SelectTrigger>
+      <SelectContent>
+        {data?.records.map((r) => (
+          <SelectItem key={r.id} value={r.id}>
+            {r.label ?? r.id.slice(0, 8)}
           </SelectItem>
         ))}
       </SelectContent>
@@ -172,6 +212,14 @@ export function DynamicFieldInput({
           return <AssetRelationSelect value={value} onChange={onChange} />;
         case "USER":
           return <UserRelationSelect value={value} onChange={onChange} />;
+        case "CUSTOM_ENTITY":
+          return (
+            <CustomEntityRelationSelect
+              targetEntityId={definition.relationTargetEntityId}
+              value={value}
+              onChange={onChange}
+            />
+          );
         default:
           return null;
       }

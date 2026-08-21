@@ -59,6 +59,14 @@ export default function CustomEntityRecordDetailPage({
 
   const { record, definition, fields } = data;
 
+  // Same display-field resolution as the relation picker (Section 5.4) —
+  // falls back to the first field by order, then to a generic label if the
+  // table has no fields at all yet.
+  const displayFieldId = definition.displayFieldId ?? fields[0]?.definition.id;
+  const recordLabel =
+    fields.find((f) => f.definition.id === displayFieldId)?.value ??
+    `${definition.name} record`;
+
   return (
     <div className="flex flex-1 overflow-auto p-7">
       <div className="mx-auto w-full max-w-xl">
@@ -70,9 +78,7 @@ export default function CustomEntityRecordDetailPage({
           <span className="font-mono">{record.id.slice(0, 8)}</span>
         </div>
 
-        <h1 className="font-heading text-xl font-semibold">
-          {definition.name} record
-        </h1>
+        <h1 className="font-heading text-xl font-semibold">{recordLabel}</h1>
         <p className="text-muted-foreground mt-1.5 text-sm">
           Created by {record.createdBy.name} · {relativeTime(record.createdAt)}
         </p>

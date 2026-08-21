@@ -14,7 +14,9 @@ import {
 import {
   useCreateCustomEntityField,
   useCustomEntityDefinition,
+  useCustomEntityDefinitions,
   useDeleteCustomEntityField,
+  useUpdateCustomEntityDefinition,
 } from "@/hooks/use-custom-entities";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,7 +40,14 @@ const FIELD_TYPES = [
   "BOOLEAN",
   "RELATION",
 ] as const;
-const RELATION_TARGETS = ["TICKET", "ASSET", "USER"] as const;
+const RELATION_TARGETS = ["TICKET", "ASSET", "USER", "CUSTOM_ENTITY"] as const;
+const RELATION_TARGET_LABEL: Record<(typeof RELATION_TARGETS)[number], string> =
+  {
+    TICKET: "Ticket",
+    ASSET: "Asset",
+    USER: "User",
+    CUSTOM_ENTITY: "Another table…",
+  };
 
 // Same reorder-by-swapping-`order` pattern as CustomFieldsAdmin.
 function ReorderButtons({
@@ -100,13 +109,17 @@ function ReorderButtons({
 
 export function CustomEntityFieldsAdmin({ slug }: { slug: string }) {
   const { data, isLoading } = useCustomEntityDefinition(slug);
+  const { data: allTables } = useCustomEntityDefinitions();
   const createField = useCreateCustomEntityField(slug);
   const deleteField = useDeleteCustomEntityField(slug);
+  const updateDefinition = useUpdateCustomEntityDefinition(slug);
   const queryClient = useQueryClient();
 
   const [optionsText, setOptionsText] = useState("");
   const [fieldType, setFieldType] =
     useState<CreateCustomEntityFieldDefinitionInput["fieldType"]>("TEXT");
+  const [relationTarget, setRelationTarget] =
+    useState<CreateCustomEntityFieldDefinitionInput["relationTarget"]>();
 
   const {
     register,
@@ -145,9 +158,21 @@ export function CustomEntityFieldsAdmin({ slug }: { slug: string }) {
       toast.success("Field added");
       reset({ fieldType: "TEXT", required: false, name: "" });
       setFieldType("TEXT");
+      setRelationTarget(undefined);
       setOptionsText("");
     } catch {
       toast.error("Could not add the field.");
+    }
+  }
+
+  async function handleDisplayFieldChange(fieldId: string) {
+    try {
+      await updateDefinition.mutateAsync({
+        displayFieldId: fieldId === "none" ? null : fieldId,
+      });
+      toast.success("Display field updated");
+    } catch {
+      toast.error("Could not update the display field.");
     }
   }
 
@@ -221,6 +246,39 @@ export function CustomEntityFieldsAdmin({ slug }: { slug: string }) {
         </p>
       </div>
 
+      {definition.fields.length > 0 && (
+        <Card className="max-w-xl">
+          <CardHeader>
+            <CardTitle className="text-base font-bold">Display field</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-2">
+            <p className="text-muted-foreground text-sm">
+              Which field represents a record when it&apos;s shown elsewhere — a
+              relation picker on another table, this record&apos;s own detail
+              page. Defaults to {definition.fields[0].name} if unset.
+            </p>
+            <Select
+              value={definition.displayFieldId ?? "none"}
+              onValueChange={handleDisplayFieldChange}
+            >
+              <SelectTrigger className="max-w-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">
+                  Default ({definition.fields[0].name})
+                </SelectItem>
+                {definition.fields.map((f) => (
+                  <SelectItem key={f.id} value={f.id}>
+                    {f.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </CardContent>
+        </Card>
+      )}
+
       <Card className="max-w-xl">
         <CardHeader>
           <CardTitle className="text-base font-bold">Existing fields</CardTitle>
@@ -253,7 +311,15 @@ export function CustomEntityFieldsAdmin({ slug }: { slug: string }) {
                     Array.isArray(def.options) &&
                     ` · ${(def.options as string[]).join(", ")}`}
                   {def.fieldType === "RELATION" &&
+                    def.relationTarget !== "CUSTOM_ENTITY" &&
                     ` · links to ${def.relationTarget?.toLowerCase()}`}
+                  {def.fieldType === "RELATION" &&
+                    def.relationTarget === "CUSTOM_ENTITY" &&
+                    ` · links to ${
+                      allTables?.definitions.find(
+                        (t) => t.id === def.relationTargetEntityId,
+                      )?.name ?? "another table"
+                    }`}
                 </div>
               </div>
               <Button
@@ -342,14 +408,22 @@ export function CustomEntityFieldsAdmin({ slug }: { slug: string }) {
                   control={control}
                   name="relationTarget"
                   render={({ field }) => (
-                    <Select value={field.value} onValueChange={field.onChange}>
+                    <Select
+                      value={field.value}
+                      onValueChange={(value) => {
+                        field.onChange(value);
+                        setRelationTarget(
+                          value as CreateCustomEntityFieldDefinitionInput["relationTarget"],
+                        );
+                      }}
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="Select an entity" />
                       </SelectTrigger>
                       <SelectContent>
                         {RELATION_TARGETS.map((t) => (
                           <SelectItem key={t} value={t}>
-                            {t.charAt(0) + t.slice(1).toLowerCase()}
+                            {RELATION_TARGET_LABEL[t]}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -359,6 +433,35 @@ export function CustomEntityFieldsAdmin({ slug }: { slug: string }) {
                 {errors.relationTarget && (
                   <p className="text-destructive text-sm">
                     {errors.relationTarget.message}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {fieldType === "RELATION" && relationTarget === "CUSTOM_ENTITY" && (
+              <div className="flex flex-col gap-2">
+                <Label>Which table</Label>
+                <Controller
+                  control={control}
+                  name="relationTargetEntityId"
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a table" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {allTables?.definitions.map((t) => (
+                          <SelectItem key={t.id} value={t.id}>
+                            {t.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                {errors.relationTargetEntityId && (
+                  <p className="text-destructive text-sm">
+                    {errors.relationTargetEntityId.message}
                   </p>
                 )}
               </div>

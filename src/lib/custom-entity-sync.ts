@@ -7,10 +7,14 @@ export type CustomEntityFieldsInput = Record<string, string | null> | undefined;
 
 // Confirms a RELATION value actually points at a real row — the pure
 // validateCustomFieldValue below only checks that something was submitted,
-// since it doesn't have a database to check against.
+// since it doesn't have a database to check against. For CUSTOM_ENTITY, also
+// confirms the record belongs to the specific target table (not just any
+// custom entity record anywhere) — otherwise a Vendor id could be spoofed
+// into a field that's supposed to link to Maintenance records.
 async function relationTargetExists(
   target: RelationTargetType,
   id: string,
+  relationTargetEntityId: string | null,
 ): Promise<boolean> {
   switch (target) {
     case "TICKET":
@@ -31,6 +35,14 @@ async function relationTargetExists(
       return (
         (await prisma.user.findUnique({
           where: { id },
+          select: { id: true },
+        })) !== null
+      );
+    case "CUSTOM_ENTITY":
+      if (!relationTargetEntityId) return false;
+      return (
+        (await prisma.customEntityRecord.findFirst({
+          where: { id, entityDefinitionId: relationTargetEntityId },
           select: { id: true },
         })) !== null
       );
@@ -83,6 +95,7 @@ export async function validateCustomEntityFields(
       const exists = await relationTargetExists(
         def.relationTarget,
         raw as string,
+        def.relationTargetEntityId,
       );
       if (!exists) errors[def.id] = "Linked record was not found.";
     }
