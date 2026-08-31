@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { toast } from "sonner";
 import {
   Bar,
@@ -75,7 +74,7 @@ function KpiTile({
 // the shell — TanStack Query dedupes the identical query key into one
 // network request, so this stays cheap while keeping each widget a
 // standalone unit: adding one means writing a component + a registry entry
-// below, never touching AdminDashboard's layout logic.
+// below, never touching Dashboard's layout logic.
 
 function OpenTicketsWidget() {
   const { data } = useDashboard();
@@ -396,7 +395,7 @@ function CustomizePanel({
   );
 }
 
-export function AdminDashboard() {
+export function Dashboard({ userName }: { userName: string }) {
   const { isLoading } = useDashboard();
   const { data: configData, isLoading: configLoading } = useDashboardConfig();
   const [customizing, setCustomizing] = useState(false);
@@ -423,33 +422,16 @@ export function AdminDashboard() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="font-heading text-xl font-semibold">
-            Admin dashboard
+            Welcome back, {userName}
           </h1>
           <p className="text-muted-foreground mt-1 text-sm">
-            Pick which widgets show and reorder them — the layout is saved per
-            admin.
+            Pick which widgets show and reorder them — the layout is saved
+            just for you.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={() => setCustomizing((v) => !v)}>
-            {customizing ? "Close" : "Customize"}
-          </Button>
-          <Button asChild variant="outline">
-            <Link href="/admin/custom-fields">Custom fields</Link>
-          </Button>
-          <Button asChild variant="outline">
-            <Link href="/admin/custom-entities">Custom tables</Link>
-          </Button>
-          <Button asChild variant="outline">
-            <Link href="/admin/activity">Activity log</Link>
-          </Button>
-          <Button asChild variant="outline">
-            <Link href="/admin/integrations">Integrations</Link>
-          </Button>
-          <Button asChild variant="outline">
-            <Link href="/admin/sla-policies">SLA policies</Link>
-          </Button>
-        </div>
+        <Button variant="outline" onClick={() => setCustomizing((v) => !v)}>
+          {customizing ? "Close" : "Customize"}
+        </Button>
       </div>
 
       {customizing && (

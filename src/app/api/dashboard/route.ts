@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin, requireSession } from "@/lib/api-auth";
+import { requireStaff, requireSession } from "@/lib/api-auth";
 
 const PRIORITIES = ["LOW", "MEDIUM", "HIGH", "URGENT"] as const;
 
@@ -15,7 +15,7 @@ type ActivityItem = {
 export async function GET() {
   const session = await requireSession();
   if ("error" in session) return session.error;
-  const forbidden = requireAdmin(session.user);
+  const forbidden = requireStaff(session.user);
   if (forbidden) return forbidden;
 
   const now = new Date();
